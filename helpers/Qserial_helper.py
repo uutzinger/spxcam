@@ -86,7 +86,7 @@ class QSerialUI(QObject):
     Serial Interface for QT
     
     Signals
-        scanPortRequest
+        scanPortsRequest
         scanBaudRatesRequest
         changePortRequest
         sendTextRequest
@@ -156,7 +156,9 @@ class QSerialUI(QObject):
 
     @pyqtSlot()
     def on_serialMonitorSend(self):
-        """ Transmitting Text from UI"""
+        """
+        Transmitting Text from UI
+        """
         text = self.ui.lineEdit_SerialText.text()                                          # obtain text from send input window
         self.serialSendHistory.append(text)                                                # keep history of previously sent commands
         self.sendTextRequest.emit(text)
@@ -199,12 +201,16 @@ class QSerialUI(QObject):
 
     @pyqtSlot()
     def on_pushButton_SerialClearOutput(self):
-        """ Clearing Text Display Window """
+        """ 
+        Clearing Text Display Window 
+        """
         self.ui.textBrowser_SerialTextDisplay.clear()
 
     @pyqtSlot()
     def on_pushButton_SerialSave(self):
-        """ Saving Text from Display Window into Text File """
+        """ 
+        Saving Text from Display Window into Text File 
+        """
         stdFileName = QStandardPaths.writableLocation(QtCore.QStandardPaths.DocumentsLocation) + "/Serial.txt"
         fname = QFileDialog.getSaveFileName(self, 'Save as', stdFileName, "Text files (*.txt)")
         # check if fname is valid, user can select cancel
@@ -213,14 +219,18 @@ class QSerialUI(QObject):
 
     @pyqtSlot()
     def on_pushButton_SerialScan(self):
-        """ Updating Serial Port List"""
+        """ 
+        Updating Serial Port List
+        """
         self.scanPortsRequest.emit()
         self.logger.log(logging.INFO, "[{}]: scanning for serial ports.".format(int(QThread.currentThreadId())))
         # Serial worker will create newPortList signal which is handeled by on_newPortList below 
 
     @pyqtSlot()
     def on_comboBoxDropDown_SerialPorts(self):
-        """ New Port Selected """
+        """ 
+        New Port Selected 
+        """
         lenSerialPorts     = len(self.serialPorts)
         lenBaudRates       = len(self.BaudRates)
         if lenSerialPorts > 0: # only continue if we have recognized serial ports
@@ -257,7 +267,9 @@ class QSerialUI(QObject):
 
     @pyqtSlot()
     def on_comboBoxDropDown_BaudRates(self):
-        """ New BaudRate selected """
+        """ 
+        New BaudRate selected 
+        """
         lenBaudRates = len(self.BaudRates)
         if lenBaudRates > 0:                                                               # if we have recognized serial baudrates
             index = self.ui.comboBoxDropDown_BaudRates.currentIndex()
@@ -278,7 +290,9 @@ class QSerialUI(QObject):
 
     @pyqtSlot(str, int)
     def on_serialStatusReady(self, port, baud):
-        """ Serial status report acailable """
+        """ 
+        Serial status report available 
+        """
         self.serialPort = port
         self.serialBaudRate = baud
         # adjust the combobox current itemt to match the current port
@@ -301,7 +315,9 @@ class QSerialUI(QObject):
 
     @pyqtSlot(list, list)
     def on_newPortListReady(self, ports, portNames):
-        """ New serial port list available """
+        """ 
+        New serial port list available 
+        """
         self.logger.log(logging.DEBUG, "[{}]: port list received.".format(int(QThread.currentThreadId())))
         self.serialPorts = ports
         self.serialPortNames = portNames
@@ -371,7 +387,7 @@ class QSerial(QObject):
     Woker Slots
         on_startReceiverRequest()        start timer that reads input port
         on_stopReceiverRequest()         stop  timer that reads input port
-        on_stopWrokerRequest()           stop  timer and close serial port
+        on_stopWorkerRequest()           stop  timer and close serial port
         on_sendTextRequest(text)         worker received request to transmit text
         on_changePortRequest(port, baud) worker received request to change port
         on_closePortRequest()            worker received request to close current port
@@ -484,7 +500,7 @@ class QSerial(QObject):
             else:
                 self.serialReceiverState = SerialReceiverState.timedOut
 
-            # execute state machine
+            # execute/advance state machine
             if self.serialReceiverState == SerialReceiverState.receivingData:
                 while self.ser.avail() > 0:
                     line = self.ser.readline()
@@ -709,7 +725,7 @@ class PSerial():
         else:
             return -1
     
-    # Setting and Readuing internal variables
+    # Setting and Reading internal variables
     ########################################################################################
         
     @property

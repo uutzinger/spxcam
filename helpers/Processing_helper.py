@@ -14,7 +14,7 @@ class QDataCube():
     Data Cube Class
       initialize  create datacube
       add(image)  add image to stack, when full emit signal and start at beginning again
-      sort(image) sort so that lowest intensity is first image in stack
+      sort()      sort so that lowest intensity is first image in stack
       bgflat()    subtract background, multiply flatfield
       bin2        binning 2x2 (explicit code is faster than general binning with slicing and summing in numpy)
       bin3        binning 3x3
@@ -45,7 +45,6 @@ class QDataCube():
         self.bg        = np.zeros((height, width), 'uint8')                          # allocate space for background image
         self.flat      = 256*np.ones((depth, height, width), 'uint16')               # flatfield correction image, scaled so that 255=100%
         self.inten     = np.zeros(depth, 'uint16')                                   # average intentisy in each image of the stack
-        self.data_corr = np.zeros((depth, height, width), 'uint16')                  # bg and flat field corrected data
         self.data_indx = 0                                                           # current location to fill the data cube with new image
 
         if flatfield is None:
@@ -63,74 +62,94 @@ class QDataCube():
             self.data_indx = 0
 
     def sort(self, delta: tuple = (64,64)):
-        """ Sorts data cube so that first image is the one with lowest intensitiy (background) """
+        """ Sorts data cube so that first image is the one with lowest intensity (background) """
         # create intensity reading for each image in the stack
         bg_dx = delta[1]                                    # take intensity values at delta x intervals
         bg_dy = delta[0]                                    # take intensity values at delta y intervals
         (depth, width, height) = self.data.shape  
-        self.inten = np.sum(self.data[:,::bg_dx,::bg_dy], axis=(1,2)) # intensities summed over image
+        self.inten = np.sum(self.data[:,::bg_dx,::bg_dy], axis=(1,2)) # intensities at selected points in image
         # create sorting index        
         background_indx = np.argmin(self.inten)             # lowest itensity
         indx  = np.arange(0, depth)                         # 0..depth-1
         indx  = indx + background_indx + 1                  # index shifted
-        indx  = indx%depth                                  # now bg is 0
+        indx  = indx%depth                                  # now bg is at first location in indx
         # data sorted
-        return self.data[indx,:,:]
+        self.data = self.data[indx,:,:]                     # rearrange data cube
     
-    def cube2DisplayImage(self, displayImage, dataCube, indx, name):
+    def cube2DisplayImage(self, displayImage, indx=[0], name=[]):
         """ 
-        Flatens the data cube to a tield display image.
-        If 3 channels are selcted, this requires 2x2 tile. 
+        Flattens the data cube to a display image.
+        If 3 channels are selected, this requires 2x2 tile. 
         It will add channel label to the image tiles. 
+        indx is selected channels
+        name is the channel names with same length as indx
         """
-        # should look into cv2.vconcat and cv2.hconcat
-        # cv2 fucntins are usually faster than numpy
         
         font             = cv2.FONT_HERSHEY_SIMPLEX
-        textLocation     = (10,20)
         fontScale        = 1
         lineType         = 2
         
-        (_,height,width) = dataCube.shape
-        factor = math.ceil(math.sqrt(len(indx))) 
+        (depth,height,width) = self.data.shape
+        # if len(indx) == depth:
+        # maybe faster option if all images are selected
+        # 
+        
+        # arrange selected images in a grid
+        columns = math.ceil(math.sqrt(len(indx))) # how many columns are needed?
+        rows   = math.ceil(len(indx)/columns)     # how many rows are needed?
+        empty  = np.zeros((height,width), dtype=_htmp.dtype)
         i = 0
-        for y in range(factor):
-            _htmp = dataCube[indx[i],:,:]
-            for x in range(factor-1):
+        for y in range(rows):
+            _htmp = self.data[indx[i],:,:]
+            for x in range(columns-1):
                 if i < len(indx):
-                    _htmp=cv2.hconcat((_htmp,dataCube[indx[i+1],:,:]))
+                    _htmp=cv2.hconcat((_htmp,self.data[indx[i+1],:,:]))
                 else:
-                    _htmp=cv2.hconcat((_htmp,np.zeros((height,width), dtype=_htmp.dtype)))
+                    _htmp=cv2.hconcat((_htmp,empty))
                 i +=1
             if y == 0:
                 _vtmp = _htmp
             else:
                 _vtmp=cv2.vconcat((_vtmp,_htmp))
 
-        (height, width) = displayImage.shape[:2]
-        newWidth  = int(width // factor)
-        newHeight = int(height // factor)
-        dsize = (newWidth, newHeight)
-            
-        x = y = 1 
-        for i in indx:
-            if factor > 1: 
-                img = cv2.resize(dataCube[i,:,:], dsize, cv2.INTER_LINEAR)
-            else: 
-                img = dataCube[i,:,:]
-            cv2.putText(img, text=name[i], org=textLocation, fontFace=font, fontScale=fontScale, color=255, thickness=lineType)
-            ystart = (y-1)* newHeight     # y is vertial 0=top
-            yend   = (y   * newHeight) -1
-            xstart = (x-1)* newWidth      # x is horizontal 0=left
-            xend   = (x   * newWidth) -1
-            displayImage[ystart:yend,xstart:xend,0] = img
-            displayImage[ystart:yend,xstart:xend,1] = img
-            displayImage[ystart:yend,xstart:xend,2] = img
-            # update location
-            x += 1
-            if x >= factor: 
-                x=1
-                y+=1
+        # resize grid of images to fit into display image
+        (height, width) = _vtmp.shape[:2]
+        (newHeight, newWidth) = displayImage.shape[:2]
+        scale = max(height/newHeight, width/newWidth)
+        dsize = (int(width // scale), int(height // scale))
+        img = cv2.resize(_vtmp, dsize, cv2.INTER_LINEAR)
+        (height, width) = img.shape[:2]
+        # copy grid image into display image: display image has 3 channels        
+        displayImage[0:height,0:width,0] = img
+        displayImage[0:height,0:width,1] = img
+        displayImage[0:height,0:width,2] = img
+        if len(name) > 0:
+            # add text to the individual images
+            x = y = 0
+            dx = width / columns
+            dy = height / rows
+            for i in indx:
+                (Label_width, Label_height), BaseLine = cv2.getTextSize(name[i], fontFace=font, fontScale=fontScale, thickness=lineType)
+                h = Label_height + BaseLine
+                loc_x = int(x * dx)
+                loc_y = int(y * dy + h)
+                cv2.rectangle(displayImage,
+                    (loc_x, loc_y),
+                    (loc_x + Label_width, loc_y + h),
+                    (255,255,255), -1, )
+                cv2.putText(displayImage, 
+                    text=name[i], 
+                    org=(loc_x, loc_y), 
+                    fontFace=font, 
+                    fontScale=fontScale, 
+                    color=(0,0,0), 
+                    thickness=lineType)
+                # update location
+                x += 1
+                if x >= columns-1: 
+                    x=0
+                    y+=1
+
                 
     # Faltfield Correction and Background removal
     #            result stack  bg     ff

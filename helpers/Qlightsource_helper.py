@@ -16,6 +16,8 @@ from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
 from parse import parse
 import logging, time
 
+NUM_LEDS = 13
+
 class QLightSource(QObject):
     """
     Light SourceInterface for QT
@@ -133,7 +135,7 @@ class QLightSource(QObject):
         isChecked = sender.isChecked()
         senderName = sender.objectName()
         channel = int(parse("pushButton_TurnOnChannel{}", senderName)[0])
-        if channel >= 1 and channel <=13:
+        if channel >= 1 and channel <=NUM_LEDS:
             if isChecked: 
                 self._manualTurnOnChannel(channel)
                 sender.setText("On")
@@ -153,7 +155,7 @@ class QLightSource(QObject):
         isChecked = sender.isChecked()
         senderName = sender.objectName()
         channel = int(parse("checkBox_MeasureChannel{}", senderName)[0])
-        if channel >= 1 and channel <= 13:
+        if channel >= 1 and channel <= NUM_LEDS:
             if isChecked: 
                 self.sendTextRequest.emit("M{}".format(channel-1)) # enable channel
             else: 
@@ -206,11 +208,11 @@ class QLightSource(QObject):
                         # update user interface values
                         horizontalSlider.setValue(int(intensity*10.0))
                         lineEdit.setText(str(intensity))
+                        labelChannel.setText(name)
                         checkBoxMeasure.setText(name)
                         checkBoxMeasure.setChecked(enabled)
                         checkBoxDisplay.setText(name)
-                        labelChannel.setText(name)
-                        checkBoxDisplay.setText(name)
+                        checkBoxDisplay.setChecked(enabled)
                         self.ui.comboBox_FirstChannel.setItemText(channel, name)
                         self.ui.comboBox_SecondChannel.setItemText(channel, name)
                         self.ui.comboBox_SelectBlueChannel.setItemText(channel, name)
@@ -242,7 +244,7 @@ class QLightSource(QObject):
         # find the user element to condense the code
         senderName = sender.objectName()
         channel = int(parse("horizontalSlider_Channel{}", senderName)[0])
-        if channel >= 1 and channel <=13:
+        if channel >= 1 and channel <=NUM_LEDS:
             self._setChannelIntensity(channel, float(value)/10.)
         self.logger.log(logging.DEBUG, "[{}]: intensity slider on channel {} released at value {}.".format(int(QThread.currentThreadId()),channel,value))
 
@@ -252,7 +254,7 @@ class QLightSource(QObject):
         sender = self.sender()
         senderName = sender.objectName()
         channel = int(parse("horizontalSlider_Channel{}", senderName)[0])
-        if channel >= 1 and channel <= 13 and self.ui is not None:
+        if channel >= 1 and channel <= NUM_LEDS and self.ui is not None:
             lineEdit = self.ui.findChild(QLineEdit, "lineEdit_Channel"+str(channel))
             lineEdit.setText(str(float(value)/10.))
             self.logger.log(logging.DEBUG, "[{}]: intensity channel {} changed to {}.".format(int(QThread.currentThreadId()),channel,value))
@@ -269,7 +271,7 @@ class QLightSource(QObject):
         value = float(sender.text())
         senderName = sender.objectName()
         channel = int(parse("lineEdit_Channel{}", senderName)[0])
-        if value >= 0.01 and value <=100. and channel>=0 and channel <= 13 and self.ui is not None:
+        if value >= 0. and value <=100. and channel>=0 and channel <= NUM_LEDS and self.ui is not None:
             horizontalSlider = self.ui.findChild(QSlider, "horizontalSlider_Channel"+str(channel))
             horizontalSlider.setValue(int(value*10.))           
             self._setChannelIntensity(channel, value)

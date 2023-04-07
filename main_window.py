@@ -4,13 +4,16 @@ from PyQt5.QtCore import pyqtSignal, QThread, QTimer, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMainWindow, QLineEdit, QSlider, QPushButton, QCheckBox
 from PyQt5.QtGui import QIcon
 
-#
+# System
 import logging
+
+# Numerical
+import numpy as np
 
 # Program related imports
 from helpers.Qserial_helper      import QSerial, QSerialUI
-
 from helpers.Qlightsource_helper import QLightSource
+from helpers.Qcamera_helper      import probeBlackFlyCameras, probeOpenCVCameras, QCamera, QCameraUI
 # from helpers.Qcamera_helper      import QCamera, QCameraUI, cameraType
 
 # Deal with high resolution displays
@@ -33,6 +36,7 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 ###########################################################################################
 # Main Window
 ###########################################################################################
+numChannels = 13
 
 class mainWindow(QMainWindow):
     """
@@ -62,7 +66,7 @@ class mainWindow(QMainWindow):
         #----------------------------------------------------------------------------------------------------------------------
         # User Interface
         #----------------------------------------------------------------------------------------------------------------------
-        self.ui = uic.loadUi('ui/mainWindow.ui', self)
+        self.ui = uic.loadUi('mainWindow.ui', self)
         # window_icon = pkg_resources.resource_filename('camera_gui.images', 'camera_48.png')
         # self.setWindowIcon(QIcon(window_icon))
         self.setWindowTitle("Camera GUI")
@@ -141,20 +145,18 @@ class mainWindow(QMainWindow):
         self.lightSourceWorker.sendTextRequest.connect( self.serialWorker.on_sendTextRequest ) # connect sending text
         self.lightSourceWorker.sendLinesRequest.connect( self.serialWorker.on_sendLinesRequest) # connect sending lines of text
         self.lightSourceWorker.startReceiverRequest.connect( self.serialWorker.on_startReceiverRequest ) # connect start receiver
-        self.lightSourceWorker.connectLightSourceRequest.connect( \
-            lambda: self.serialWorker.textReceived.connect(self.lightSourceWorker.on_ChannelSettings) ) 
-        self.lightSourceWorker.disconnectLightSourceRequest.connect( \
-            lambda: self.serialWorker.textReceived.disconnect(self.lightSourceWorker.on_ChannelSettings) ) 
+        self.lightSourceWorker.connectLightSourceRequest.connect( lambda: self.serialWorker.textReceived.connect(self.lightSourceWorker.on_ChannelSettings) ) 
+        self.lightSourceWorker.disconnectLightSourceRequest.connect( lambda: self.serialWorker.textReceived.disconnect(self.lightSourceWorker.on_ChannelSettings) ) 
         
         # Pushbutton manual On/Off
-        for channel in range(13):
+        for channel in range(numChannels):
             pushButton = self.ui.findChild(QPushButton, "pushButton_TurnOnChannel"+str(channel+1))
             pushButton.setCheckable(True)
             pushButton.setText("Off")
             pushButton.clicked.connect(self.lightSourceWorker.on_pushButton_TurnOnChannel)
 
         # Intensity Slider
-        for channel in range(13):
+        for channel in range(numChannels):
             horizontalSlider = self.ui.findChild(QSlider, "horizontalSlider_Channel"+str(channel+1))
             horizontalSlider.setMinimum(0)  
             horizontalSlider.setMaximum(1000)
@@ -162,7 +164,7 @@ class mainWindow(QMainWindow):
             horizontalSlider.sliderReleased.connect( self.lightSourceWorker.on_IntensitySliderReleased )
 
         # Intensity Line Edit
-        for channel in range(13):
+        for channel in range(numChannels):
             lineEdit = self.ui.findChild(QLineEdit, "lineEdit_Channel"+str(channel+1))
             lineEdit.returnPressed.connect( self.lightSourceWorker.on_IntensityLineEditChanged )
                 
@@ -180,7 +182,7 @@ class mainWindow(QMainWindow):
         self.ui.pushButton_LoadLightSourceSettings.clicked.connect( self.lightSourceWorker.loadChannelSettings )
 
         # Checkbox Enable/Disable Channel
-        for channel in range(13):
+        for channel in range(numChannels):
             checkBox = self.ui.findChild( QCheckBox, "checkBox_MeasureChannel"+str(channel+1))
             checkBox.stateChanged.connect( self.lightSourceWorker.on_enableChannel)
                                     
@@ -190,26 +192,33 @@ class mainWindow(QMainWindow):
         # Camera
         #----------------------------------------------------------------------------------------------------------------------
         
-        from configs import blackfly_configs as configs
-
         # Camera capture thread
-        # self.cameraThread = QThread()                                                      # create QThread object
-        # self.cameraThread.start()                                                          # start thread which will start worker
+        self.cameraThread = QThread()                                                      # create QThread object
+        self.cameraThread.start()                                                          # start thread which will start worker
 
-        # # Create user interface hook for camera
-        # self.cameraUI     = QCameraUI(ui=self.ui)                                                    # create serial userinterface object
-        # self.cameraWorker = QCamera(configs, camreatype = cameraType.opencv)
+        # Create user interface hook for camera
+        self.cameraUI     = QCameraUI(ui=self.ui)                                          # create serial userinterface object
 
-        # # Connect worker / thread
-        # self.cameraWorker.finished.connect(         self.cameraThread.quit               ) # if worker emits finished quite worker thread
-        # self.cameraWorker.finished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
-        # self.cameraThread.finished.connect(         self.cameraThread.deleteLater        ) # delete thread at some time
+        !!!!! Update, QCamera scans for available cameras and loads config based on user selection
+        self.cameraWorker = QCamera(configs, cameratype = cameraType.opencv)
 
-        # # Connect camera signal to camer-UI
+        # Connect worker / thread
+        self.cameraWorker.finished.connect(         self.cameraThread.quit               ) # if worker emits finished quite worker thread
+        self.cameraWorker.finished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
+        self.cameraThread.finished.connect(         self.cameraThread.deleteLater        ) # delete thread at some time
+
+        # # Connect camera signal to camera-UI
         # self.cameraWorker.imageDataReady.connect(   self.cameraUI.on_imageDataReady )
         # self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSReady )
 
-        # # Connect user interface signals to camera        
+        # Connect user interface signals to camera    
+        !!!! SCAN CAMERAS
+        self.ui.scanPortsRequest.connect(     self.serialWorker.on_scanPortsRequest     ) # connect request to scan ports
+        # self.ui.pushButton_CameraStop.clicked.connect(  self.cameraUI.on_Stop )
+        # self.ui.pushButton_CameraCalibrate.clicked.connect(   self.cameraUI.on_Calibrate )
+
+
+        # Connect user interface signals to camera        
         # self.ui.pushButton_CAMERASTART.connect(  self.cameraWorker.on_startCamera )
         # self.ui.pushButton_CAMERASTOP.connect(   self.cameraWorker.on_stopCamera )
 

@@ -9,6 +9,8 @@ import logging
 from PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QSignalMapper
 from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
 
+numChannels =  13
+
 class QDisplayUI(QObject):
     def __init__(self, parent=None, ui=None):
         super(QDisplayUI, self).__init__(parent)
@@ -26,7 +28,7 @@ class QDisplayUI(QObject):
             self.name.append("Background")
             
         _tmp=0      
-        for channel in range(13):            
+        for channel in range(numChannels):            
             checkBoxA = self.ui.findChild( QCheckBox, "checkBox_MeasureChannel"+str(channel+1))
             checkBoxB = self.ui.findChild( QCheckBox, "checkBox_DisplayChannel"+str(channel+1))
             if checkBoxA.isChecked(): 
