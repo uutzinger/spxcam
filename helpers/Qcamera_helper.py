@@ -306,10 +306,9 @@ class QCamera(QObject):
         on_changeBinning    
     
     """
-        
+
     # Signals
     ########################################################################################
-    imageDataReady     = pyqtSignal(float, np.ndarray)                                  # image received
     cameraStatusReady  = pyqtSignal(list)                                               # camera status is available
     cameraFinished     = pyqtSignal() 
     newCameraListReady = pyqtSignal(list)                                               # new camera list is available
@@ -369,18 +368,17 @@ class QCamera(QObject):
                
     @pyqtSlot(int)
     def on_startCamera(self):
-
-        # self.datacube.dataCubeReady.connect() # needs to go to processing
-        # self.datacube.dataCubeReady.connect() # needs to go to display
-        self.camera.startAquistion()
-        self.camera.update() # will run forever unless stop issued
+        !! need to know datacube depth which is the number of selected measurement channels
+        self.camera.startAcquisition(depth=depth, flatfield=None)
+        # self.camera.datacube.dataCubeReady.connect() # needs to go to processing
+        # self.camera.datacube.dataCubeReady.connect() # needs to go to display
         self.logger.log(logging.DEBUG, "QCamera started")
-
+        self.camera.update() # will run forever unless stop issued
+        # This does not stop until camera is stopped
 
     @pyqtSlot()
     def on_stopCamera(self):
-        self.camera.stopAquistion()
-        # delete datacube and its methods
+        self.camera.stopAcquisition()
         self.logger.log(logging.DEBUG, "QCamera stopped")
 
     @pyqtSlot()
@@ -388,11 +386,11 @@ class QCamera(QObject):
         # stop camera and acquisition
         try: 
             if self.camera.cam_open:
-                self.camera.stopAquistion()
+                self.camera.stopAcquisition()
                 self.camera.closeCamera()
         except: pass
         camCV2      = self._probeOpenCVCameras()
-        self.logger.log(logging.DEBUG, "QCamera scanned for opneCV cameras")
+        self.logger.log(logging.DEBUG, "QCamera scanned for openCV cameras")
         camBlackFly = self._probeBlackFlyCameras()
         self.logger.log(logging.DEBUG, "QCamera scanned fro BlackFly cameras")
         

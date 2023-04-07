@@ -60,7 +60,7 @@ class OpenCVCapture(QObject):
         self.measured_fps = 0.0
         self.stopped         = True
 
-    # After Stating of the Thread, this runs continously
+    # After Stating of the Thread, this runs continuously
     def update(self):
         """
         Continuously read Capture
@@ -69,9 +69,9 @@ class OpenCVCapture(QObject):
 
         while not self.stopped:
             current_time = time.perf_counter()
-            if self.cam is not None:
-                with self.cam_lock:
-                    _, _img = self.cam.read()
+            if self.camera is not None:
+                with self.camera_lock:
+                    _, _img = self.camera.read()
                 self.frame_time = int(current_time*1000)
                 if len(_img.shape>=3):
                     img = cv2.cvtColor(_img, cv2.COLOR_BGR2GRAY)
@@ -97,17 +97,17 @@ class OpenCVCapture(QObject):
 
         # Open the camera with platform optimal settings
         if sys.platform.startswith('win'):
-            self.cam = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_DSHOW) # CAP_VFW or CAP_DSHOW or CAP_MSMF or CAP_ANY
+            self.camera = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_DSHOW) # CAP_VFW or CAP_DSHOW or CAP_MSMF or CAP_ANY
         elif sys.platform.startswith('darwin'):
-            self.cam = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_AVFOUNDATION)
+            self.camera = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_AVFOUNDATION)
         elif sys.platform.startswith('linux'):
-            self.cam = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_V4L2)
+            self.camera = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_V4L2)
         else:
-            self.cam = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_ANY)
+            self.camera = cv2.VideoCapture(self._camera_num, apiPreference=cv2.CAP_ANY)
 
-        self.cam_open = self.cam.isOpened()
+        self.camera_open = self.camera.isOpened()
 
-        if self.cam_open:
+        if self.camera_open:
             # Apply settings to camera
             #self.height        = self._camera_res[1]   # image resolution
             #self.width         = self._camera_res[0]   # image resolution
@@ -121,7 +121,7 @@ class OpenCVCapture(QObject):
             self.wbtemperature = self._wbtemp          # camera white balance temperature
             self.autowb        = self._autowb          # camera enable auto white balance
 
-            if self._settings > -1: self.cam.set(cv2.CAP_PROP_SETTINGS, 0.0) # open camera settings window
+            if self._settings > -1: self.camera.set(cv2.CAP_PROP_SETTINGS, 0.0) # open camera settings window
             
             # Update records
             self._camera_res    = self.resolution
@@ -138,17 +138,18 @@ class OpenCVCapture(QObject):
             self.logger.log(logging.CRITICAL, "[OpenCV]: Failed to open camera!")
 
     def closeCamera(self):
-        try: self.cam.release()
+        try: self.camera.release()
         except: pass
 
-    def startAcquisition(self):
+    def startAcquisition(self, depth=1, flatfield=None):
         # create datacube structure
-        self.datacube = QDataCube(width=self.camera.width, height=self.camera.height, depth=depth, flatfield=None)
+        self.datacube = QDataCube(width=self.camera.width, height=self.camera.height, depth=depth, flatfield=flatfield)
         self.stopped = False
         self.logger.log(logging.INFO, "[OpenCV]: Acquiring images.")
     
     def stopAcquisition(self):
         self.stopped = True
+        del self.datacube
         self.logger.log(logging.INFO, "[OpenCV]: Stopped acquiring images.")
 
     # Open Settings Window
@@ -157,8 +158,8 @@ class OpenCVCapture(QObject):
         """
         Open up the camera settings window
         """
-        if self.cam_open:
-            self.cam.set(cv2.CAP_PROP_SETTINGS, 0.0)
+        if self.camera_open:
+            self.camera.set(cv2.CAP_PROP_SETTINGS, 0.0)
 
     # Camera routines #################################################
     # Reading and setting camera options
@@ -167,8 +168,8 @@ class OpenCVCapture(QObject):
     @property
     def width(self):
         """ returns video capture width """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_FRAME_WIDTH))
         else: return -1
     @width.setter
     def width(self, val):
@@ -176,10 +177,10 @@ class OpenCVCapture(QObject):
         if (val is None) or (val == -1):
             self.logger.log(logging.WARNING, "[OpenCV]: Width not changed to {}.".format(val))
             return
-        if self.cam_open and val > 0:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, val):
-                    # self._camera_res = (int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self._camera_res[1]))
+        if self.camera_open and val > 0:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, val):
+                    # self._camera_res = (int(self.camera.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self._camera_res[1]))
                     # HEIGHT and WIDTH only valid if both were set
                    self.logger.log(logging.INFO, "[OpenCV]: Width:{}.".format(val))
                 else:
@@ -189,9 +190,9 @@ class OpenCVCapture(QObject):
 
     @property
     def height(self):
-        """ returns videocapture height """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        """ returns video capture height """
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
         else: return -1
     @height.setter
     def height(self, val):
@@ -199,10 +200,10 @@ class OpenCVCapture(QObject):
         if (val is None) or (val == -1):
             self.logger.log(logging.WARNING, "[OpenCV]: Height not changed:{}.".format(val))
             return
-        if self.cam_open and val > 0:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, int(val)):
-                    # self._camera_res = (int(self._camera_res[0]), int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        if self.camera_open and val > 0:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, int(val)):
+                    # self._camera_res = (int(self._camera_res[0]), int(self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT)))
                     # HEIGHT and WIDTH only valid if both were set
                     self.logger.log(logging.INFO, "[OpenCV]: Height:{}.".format(val))
                 else:
@@ -213,30 +214,30 @@ class OpenCVCapture(QObject):
     @property
     def resolution(self):
         """ returns current resolution width x height """
-        if self.cam_open:
-            return (int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)), 
-                    int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        if self.camera_open:
+            return (int(self.camera.get(cv2.CAP_PROP_FRAME_WIDTH)), 
+                    int(self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         else: return (-1, -1) 
     @resolution.setter
     def resolution(self, val):
         if val is None: return
-        if self.cam_open:
+        if self.camera_open:
             if len(val) > 1: # have width x height
                 self.width  = int(val[0])
                 self.height = int(val[1])
             else: # given only one value for resolution
                 self.width  = int(val)
                 self.height = int(val)
-            self._camera_res = (int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+            self._camera_res = (int(self.camera.get(cv2.CAP_PROP_FRAME_WIDTH)), int(self.camera.get(cv2.CAP_PROP_FRAME_HEIGHT)))
             self.logger.log(logging.INFO, "[OpenCV]: Resolution:{}x{}.".format(self._camera_res[0],self._camera_res[1]))
         else: # camera not open
             self.logger.log(logging.CRITICAL, "[OpenCV]: Failed to set Resolution, camera not open!")
 
     @property
     def exposure(self):
-        """ returns curent exposure """
-        if self.cam_open:
-            return self.cam.get(cv2.CAP_PROP_EXPOSURE)
+        """ returns current exposure """
+        if self.camera_open:
+            return self.camera.get(cv2.CAP_PROP_EXPOSURE)
         else: return float("NaN")
     @exposure.setter
     def exposure(self, val):
@@ -244,11 +245,11 @@ class OpenCVCapture(QObject):
         if (val is None):
             self.logger.log(logging.WARNING, "[OpenCV]: Skipping set Exposure to {}.".format(val))
             return
-        if self.cam_open:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_EXPOSURE, val):
+        if self.camera_open:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_EXPOSURE, val):
                     self.logger.log(logging.INFO, "[OpenCV]: Exposure set:{}.".format(val))
-                    self._exposure = self.cam.get(cv2.CAP_PROP_EXPOSURE)
+                    self._exposure = self.camera.get(cv2.CAP_PROP_EXPOSURE)
                     self.logger.log(logging.INFO, "[OpenCV]: Exposure is:{}.".format(self._exposure))
                 else:
                     self.logger.log(logging.ERROR, "[OpenCV]: Failed to set Expsosure to:{}.".format(val))
@@ -257,21 +258,21 @@ class OpenCVCapture(QObject):
 
     @property
     def autoexposure(self):
-        """ returns curent exposure """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_AUTO_EXPOSURE))
+        """ returns current exposure """
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_AUTO_EXPOSURE))
         else: return -1
     @autoexposure.setter
     def autoexposure(self, val):
         """ sets autoexposure """
         if (val is None):
-            self.logger.log(logging.WARNING, "[OpenCV]: Skippingt set Autoexposure to:{}.".format(val))
+            self.logger.log(logging.WARNING, "[OpenCV]: Skipping set Autoexposure to:{}.".format(val))
             return
-        if self.cam_open:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, val):
+        if self.camera_open:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_AUTO_EXPOSURE, val):
                     self.logger.log(logging.INFO, "[OpenCV]: Autoexposure set:{}.".format(val))
-                    self._autoexposure = self.cam.get(cv2.CAP_PROP_AUTO_EXPOSURE)
+                    self._autoexposure = self.camera.get(cv2.CAP_PROP_AUTO_EXPOSURE)
                     self.logger.log(logging.INFO, "[OpenCV]: Autoexposure is:{}.".format(self._autoexposure))
                 else:
                     self.logger.log(logging.ERROR, "[OpenCV]: Failed to set Autoexposure to:{}.".format(val))
@@ -281,8 +282,8 @@ class OpenCVCapture(QObject):
     @property
     def fps(self):
         """ returns current frames per second setting """
-        if self.cam_open:
-            return self.cam.get(cv2.CAP_PROP_FPS)
+        if self.camera_open:
+            return self.camera.get(cv2.CAP_PROP_FPS)
         else: return float("NaN")
     @fps.setter
     def fps(self, val):
@@ -290,11 +291,11 @@ class OpenCVCapture(QObject):
         if (val is None) or (val == -1):
             self.logger.log(logging.WARNING, "[OpenCV]: Skipping set FPS to:{}.".format(val))
             return
-        if self.cam_open:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_FPS, val):
+        if self.camera_open:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_FPS, val):
                     self.logger.log(logging.INFO, "[OpenCV]: FPS set:{}.".format(val))
-                    self._framerate = self.cam.get(cv2.CAP_PROP_FPS)
+                    self._framerate = self.camera.get(cv2.CAP_PROP_FPS)
                     self.logger.log(logging.INFO, "[OpenCV]: FPS is:{}.".format(self._framerate))
                 else:
                     self.logger.log(logging.ERROR, "[OpenCV]: Failed to set FPS to:{}.".format(val))
@@ -303,14 +304,14 @@ class OpenCVCapture(QObject):
 
     @staticmethod
     def decode_fourcc(val):
-        """ decode the fourcc integer to the chracter string """
+        """ decode the fourcc integer to the character string """
         return "".join([chr((int(val) >> 8 * i) & 0xFF) for i in range(4)])
 
     @property
     def fourcc(self):
         """ return video encoding format """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_FOURCC))
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_FOURCC))
         else: return "None"
     @fourcc.setter
     def fourcc(self, val):
@@ -318,19 +319,19 @@ class OpenCVCapture(QObject):
         if (val is None) or (val == -1):
             self.logger.log(logging.WARNING, "[OpenCV]: Skipping set FOURCC to:{}.".format(val))
             return
-        if self.cam_open:        
+        if self.camera_open:        
             if isinstance(val, str): # fourcc is a string
-                with self.cam_lock: 
-                    if self.cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(val[0],val[1],val[2],val[3])):
-                        self._fourcc     = self.cam.get(cv2.CAP_PROP_FOURCC)
+                with self.camera_lock: 
+                    if self.camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(val[0],val[1],val[2],val[3])):
+                        self._fourcc     = self.camera.get(cv2.CAP_PROP_FOURCC)
                         self._fourcc_str = self.decode_fourcc(self._fourcc)
                         self.logger.log(logging.INFO, "[OpenCV]: FOURCC is:{}.".format(self._fourcc_str))
                     else:
                         self.logger.log(logging.ERROR, "[OpenCV]: Failed to set FOURCC to:{}.".format(val))
             else: # fourcc is integer/long
-                with self.cam_lock: 
-                    if self.cam.set(cv2.CAP_PROP_FOURCC, val):
-                        self._fourcc     = int(self.cam.get(cv2.CAP_PROP_FOURCC))
+                with self.camera_lock: 
+                    if self.camera.set(cv2.CAP_PROP_FOURCC, val):
+                        self._fourcc     = int(self.camera.get(cv2.CAP_PROP_FOURCC))
                         self._fourcc_str = self.decode_fourcc(self._fourcc)
                         self.logger.log(logging.INFO, "[OpenCV]: FOURCC is:{}.".format(self._fourcc_str))
                     else:
@@ -341,8 +342,8 @@ class OpenCVCapture(QObject):
     @property
     def buffersize(self):
         """ return opencv camera buffersize """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_BUFFERSIZE))
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_BUFFERSIZE))
         else: return float("NaN")
     @buffersize.setter
     def buffersize(self, val):
@@ -350,11 +351,11 @@ class OpenCVCapture(QObject):
         if val is None or val < 0:
             self.logger.log(logging.WARNING, "[OpenCV]: Skipping set Buffersize to:{}.".format(val))
             return
-        if self.cam_open:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_BUFFERSIZE, val):
+        if self.camera_open:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_BUFFERSIZE, val):
                     self.logger.log(logging.INFO, "[OpenCV]: Buffersize set:{}.".format(val))
-                    self._buffersize = int(self.cam.get(cv2.CAP_PROP_BUFFERSIZE))
+                    self._buffersize = int(self.camera.get(cv2.CAP_PROP_BUFFERSIZE))
                     self.logger.log(logging.INFO, "[OpenCV]: Buffersize is:{}.".format(self._buffersize))
                 else:
                     self.logger.log(logging.ERROR, "[OpenCV]: Failed to set Buffersize to:{}.".format(val))
@@ -364,8 +365,8 @@ class OpenCVCapture(QObject):
     @property
     def gain(self):
         """ return opencv camera gain """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_GAIN))
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_GAIN))
         else: return float("NaN")
     @gain.setter
     def gain(self, val):
@@ -373,11 +374,11 @@ class OpenCVCapture(QObject):
         if val is None or val < 0:
             self.logger.log(logging.WARNING, "[OpenCV]: Skipping set Gain to:{}.".format(val))
             return
-        if self.cam_open:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_GAIN, val):
+        if self.camera_open:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_GAIN, val):
                     self.logger.log(logging.INFO, "[OpenCV]: Gain set:{}.".format(val))
-                    self._gain = int(self.cam.get(cv2.CAP_PROP_GAIN))
+                    self._gain = int(self.camera.get(cv2.CAP_PROP_GAIN))
                     self.logger.log(logging.INFO, "[OpenCV]: Gain is:{}.".format(self._gain))
                 else:
                     self.logger.log(logging.ERROR, "[OpenCV]: Failed to set Gain to:{}.".format(val))
@@ -387,8 +388,8 @@ class OpenCVCapture(QObject):
     @property
     def wbtemperature(self):
         """ return opencv camera white balance temperature """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_WB_TEMPERATURE))
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_WB_TEMPERATURE))
         else: return float("NaN")
     @wbtemperature.setter
     def wbtemperature(self, val):
@@ -396,11 +397,11 @@ class OpenCVCapture(QObject):
         if val is None or val < 0:
             self.logger.log(logging.WARNING, "[OpenCV]: Skipping set WB_TEMPERATURE to:{}.".format(val))
             return
-        if self.cam_open:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_WB_TEMPERATURE, val):
+        if self.camera_open:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_WB_TEMPERATURE, val):
                     self.logger.log(logging.INFO, "[OpenCV]: WB_TEMPERATURE set:{}.".format(val))
-                    self._wbtemp = int(self.cam.get(cv2.CAP_PROP_WB_TEMPERATURE))
+                    self._wbtemp = int(self.camera.get(cv2.CAP_PROP_WB_TEMPERATURE))
                     self.logger.log(logging.INFO, "[OpenCV]: WB_TEMPERATURE is:{}.".format(self._wbtemp))
                 else:
                     self.logger.log(logging.ERROR, "[OpenCV]: Failed to set whitebalance temperature to:{}.".format(val))
@@ -410,8 +411,8 @@ class OpenCVCapture(QObject):
     @property
     def autowb(self):
         """ return opencv camera auto white balance """
-        if self.cam_open:
-            return int(self.cam.get(cv2.CAP_PROP_AUTO_WB))
+        if self.camera_open:
+            return int(self.camera.get(cv2.CAP_PROP_AUTO_WB))
         else: return float("NaN")
     @autowb.setter
     def autowb(self, val):
@@ -419,11 +420,11 @@ class OpenCVCapture(QObject):
         if val is None or val < 0:
             self.logger.log(logging.WARNING, "[OpenCV]: Skipping set AUTO_WB to:{}.".format(val))
             return
-        if self.cam_open:
-            with self.cam_lock:
-                if self.cam.set(cv2.CAP_PROP_AUTO_WB, val):
+        if self.camera_open:
+            with self.camera_lock:
+                if self.camera.set(cv2.CAP_PROP_AUTO_WB, val):
                     self.logger.log(logging.INFO, "[OpenCV]: AUTO_WB:{}.".format(val))
-                    self._autowb = int(self.cam.get(cv2.CAP_PROP_AUTO_WB))
+                    self._autowb = int(self.camera.get(cv2.CAP_PROP_AUTO_WB))
                     self.logger.log(logging.INFO, "[OpenCV]: AUTO_WB is:{}.".format(self._autowb))
                 else:
                     self.logger.log(logging.ERROR, "[OpenCV]: Failed to set auto whitebalance to:{}.".format(val))
