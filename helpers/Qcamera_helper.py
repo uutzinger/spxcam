@@ -64,6 +64,7 @@ class QCameraUI(QObject):
     Camera User Interface Interactions
 
     Signals
+        = For cameraWorker
         scanCameraRequest              # cameraWorker shall scan cameras
         changeCameraRequest            # cameraWorker shall change camera
         changeExposureRequest          # cameraWorker shall change exposure
@@ -71,15 +72,28 @@ class QCameraUI(QObject):
         changeBinningRequest           # cameraWorker shall change binning
         startCameraRequest             # cameraWorker shall start camera
         stopCameraRequest              # cameraWorker shall stop camera
-    
+        setDisplayedChannels           # cameraWorker shall set displayed channels
+
+        = For processWorker
+        NEED TO DEVELOP
+
     Slots
-        on_newCameraListReady          # cameraWorker returns new camera list
-        on_newImageDataReady           # cameraWorker returns new image data
-        on_pushButton_CameraScan       # user clicked on scan camera button
-        on_pushButton_CameraStart      # user clicked on start button
-        on_pushButton_CameraStop       # user clicked on stop button
-        on_pushButton_CameraCalibrate  # user clicked on calibrate button
-        on_on_comboBoxDropDown_Cameras # an other camera was selected
+        = Forward requests to cameraWorker
+        on_Start                # check selected measurement and display channels and emit setDisplayChannels
+        on Stop                 # emit signal to CameraWorker
+        on_Calibrate            # emit signal to CameraWorker
+        on_ScanCameras          # emit signal to CameraWorker
+        on_ChangeCamera         # emit signal to CameraWorker
+        on_FrameRateChanged     # emit signal to CameraWorker
+        on_ExposureTimeChanged  # emit signal to CameraWorker
+        on_BinningChanged       # emit signal to CameraWorker
+
+        = Update UI
+        on_FPSINReady           # update number on display
+        on_FPSOUTReady          # update number on display
+        on_ImageDataReady       # display it        
+        on_newCameraListReady   # populate camera list on pull down menu
+        on_newImageDataReady    # cameraWorker returns new image data
         
     This section can not go to separate thread as it interfaces to UI
     
@@ -95,7 +109,7 @@ class QCameraUI(QObject):
     changeFrameRateRequest = pyqtSignal(int)  # change frame rate to int
     changeBinningRequest   = pyqtSignal(list) # change binning vet hor
         
-    setDisplayedChannels   = pyqtSignal(np.ndarray, list)
+    setDisplayedChannelsRequest = pyqtSignal(np.ndarray, list)
         
     def __init__(self, parent=None, ui=None):
         # super().__init__()
@@ -159,11 +173,18 @@ class QCameraUI(QObject):
     # Function slots
           
     @pyqtSlot(float)
-    def on_FPSReady(self, fps):
+    def on_FPSInReady(self, fps):
         """
         this will update frames per second display
         """
         self.ui.lcdNumber_FPSIN.display("{:5.1f}".format(fps)) 
+
+    @pyqtSlot(float)
+    def on_FPSOutReady(self, fps):
+        """
+        this will update frames per second display
+        """
+        self.ui.lcdNumber_FPSOUT.display("{:5.1f}".format(fps)) 
 
     @pyqtSlot(np.ndarray)
     def on_ImageDataReady(self, image):
@@ -208,6 +229,8 @@ class QCameraUI(QObject):
         # enable signals again
         self.ui.comboBoxDropDown_Cameras.blockSignals(False)
 
+    # Handing off signals to Camera
+
     @pyqtSlot()
     def on_Start(self):
         
@@ -242,7 +265,7 @@ class QCameraUI(QObject):
             channelNames.append(checkBoxDisplay.text())
 
         # announce channels display
-        self.setDisplayedChannels.emit(indexCube, channelNames)
+        self.setDisplayedChannelsRequest.emit(indexCube, channelNames)
 
         # what processing
         # do we want bg-subtraction, flatfield correction, 
@@ -257,11 +280,11 @@ class QCameraUI(QObject):
 
     @pyqtSlot()
     def on_Stop(self):
-        self.stopCamera.emit()
+        self.stopCameraRequest.emit()
 
     @pyqtSlot()
     def on_ScanCamera(self):
-        self.scanCamera.emit()
+        self.scanCameraRequest.emit()
 
     @pyqtSlot()
     def on_Calibrate(self):
@@ -272,16 +295,17 @@ class QCameraUI(QObject):
         self.changeCameraRequest.emit(indx)
         
     @pyqtSlot(int)
-    def on_ChangeExposure(self, exposure):
+    def on_ExposureTimeChanged(self, exposure):
         self.changeExposureRequest.emit(exposure)
 
     @pyqtSlot(int)
-    def on_ChangeFPS(self, fps):
+    def on_FrameRateChanged(self, fps):
         self.changeFrameRateRequest.emit(fps)
 
+
     @pyqtSlot(list)
-    def on_ChangeBinning(self, bin ):
-        self.scanCamera.emit(bin)        
+    def on_BinningChanged(self, bin ):
+        self.changeBinningRequest.emit(bin)        
         
 class QCamera(QObject):
     """
@@ -382,7 +406,7 @@ class QCamera(QObject):
         self.logger.log(logging.DEBUG, "QCamera stopped")
 
     @pyqtSlot()
-    def on_scanCamera(self):
+    def on_scanCameras(self):
         # stop camera and acquisition
         try: 
             if self.camera.cam_open:

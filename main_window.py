@@ -1,3 +1,21 @@
+############################################################################################
+# Multispectral Camera User Interface
+# Handles Light Source, Camera, and Serial Communication
+# Urs Utzinger, 2022, 2023
+############################################################################################
+# ** https://realpython.com/learning-paths/pyqt-gui-programming/
+# CSC-121, Graphical Python Programming, Using 2 QThread objects to emit signals to a Python GUI App
+#
+# Example large python QT program    
+# https://gitlab.com/william.belanger/obsuite
+#
+# Matplot
+# https://codeloop.org/how-to-embed-matplotlib-graph-in-pyqt5/
+# https://stackoverflow.com/questions/61530741/put-a-matplotlib-plot-as-a-qgraphicsitem-into-a-qgraphicsview
+
+# Number of Light Sources
+numChannels = 13
+
 # QT imports
 from PyQt5 import QtCore, QtWidgets, QtGui, uic
 from PyQt5.QtCore import pyqtSignal, QThread, QTimer, pyqtSignal, pyqtSlot
@@ -10,12 +28,14 @@ import logging
 # Numerical
 import numpy as np
 
-# Program related imports
+# Custom imports
 from helpers.Qserial_helper      import QSerial, QSerialUI
 from helpers.Qlightsource_helper import QLightSource
-from helpers.Qcamera_helper      import probeBlackFlyCameras, probeOpenCVCameras, QCamera, QCameraUI
-# from helpers.Qcamera_helper      import QCamera, QCameraUI, cameraType
+from helpers.Qcamera_helper      import QCamera, QCameraUI, cameraType
+# from helpers.Qdisplay_helper     import QDisplay, QDisplayUI
+# from Processing_helper           import QDataCube
 
+# QT
 # Deal with high resolution displays
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
@@ -23,20 +43,9 @@ if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
 if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
-# ** https://realpython.com/learning-paths/pyqt-gui-programming/
-# CSC-121, Graphical Python Programming, Using 2 QThread objects to emit signals to a Python GUI App
-
-# Example large python QT program    
-# https://gitlab.com/william.belanger/obsuite
-
-# matplot
-# https://codeloop.org/how-to-embed-matplotlib-graph-in-pyqt5/
-# https://stackoverflow.com/questions/61530741/put-a-matplotlib-plot-as-a-qgraphicsitem-into-a-qgraphicsview
-
 ###########################################################################################
 # Main Window
 ###########################################################################################
-numChannels = 13
 
 class mainWindow(QMainWindow):
     """
@@ -53,11 +62,13 @@ class mainWindow(QMainWindow):
         This will create the connections between slots and signals in both directions.
         
         Serial:
-        Create serial worker and move it to seprate thread.
+        Create serial worker and move it to separate thread.
+
+        Lightsource:        
+        ...
         
         Camera:
-        Todo
-        
+        ...
         """
         super(mainWindow, self).__init__(parent) # parent constructor
         
@@ -197,39 +208,65 @@ class mainWindow(QMainWindow):
         self.cameraThread.start()                                                          # start thread which will start worker
 
         # Create user interface hook for camera
-        self.cameraUI     = QCameraUI(ui=self.ui)                                          # create serial userinterface object
+        self.cameraUI     = QCameraUI(ui=self.ui)                                          # create serial user interface object
 
-        !!!!! Update, QCamera scans for available cameras and loads config based on user selection
-        self.cameraWorker = QCamera(configs, cameratype = cameraType.opencv)
+        # Create camera worker
+        self.cameraWorker = QCamera()
 
         # Connect worker / thread
         self.cameraWorker.finished.connect(         self.cameraThread.quit               ) # if worker emits finished quite worker thread
         self.cameraWorker.finished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
         self.cameraThread.finished.connect(         self.cameraThread.deleteLater        ) # delete thread at some time
 
-        # # Connect camera signal to camera-UI
-        # self.cameraWorker.imageDataReady.connect(   self.cameraUI.on_imageDataReady )
-        # self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSReady )
+        # Signals from Camera to Camera-UI
+        self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSINReady )
+        self.cameraWorker.newCameraListReady.connect(self.cameraUI.on_newCameraListReady  ) #
 
-        # Connect user interface signals to camera    
-        !!!! SCAN CAMERAS
-        self.ui.scanPortsRequest.connect(     self.serialWorker.on_scanPortsRequest     ) # connect request to scan ports
-        # self.ui.pushButton_CameraStop.clicked.connect(  self.cameraUI.on_Stop )
-        # self.ui.pushButton_CameraCalibrate.clicked.connect(   self.cameraUI.on_Calibrate )
+        # Signals from Camera to processWorker
+        self.cameraWorker.imageDataReady.connect(   self.processWorker.on_imageDataReady )
+
+        # Signals from Processor to Camera-UI
+        # self.processWorker.fpsReady.connect(          self.cameraUI.on_FPSOUTReady )
+        # self.processWorker.newImageDataReady.connect( self.cameraUI.on_newImageDataReady )
+
+        # Signals from Camera-UI to Camera
+        self.cameraUI.changeCameraRequest.connect( self.cameraWorker.on_changeCamera )     # cameraWorker shall change camera
+        self.cameraUI.changeExposureRequest.connect( self.cameraWorker.on_changeExposure)  # cameraWorker shall change exposure
+        self.cameraUI.changeFrameRateRequest.connect(self.cameraWorker.on_changeFrameRate) # cameraWorker shall change frame rate
+        self.cameraUI.changeBinningRequest.connect(self.cameraWorker.on_changeBinning)     # cameraWorker shall change binning
+        self.cameraUI.startCameraRequest.connect(self.cameraWorker.on_startCamera)         # cameraWorker shall start camera
+        self.cameraUI.stopCameraRequest.connect(self.cameraWorker.on_stopCamera)           # cameraWorker shall stop camera
+        self.cameraUI.scanCameraRequest.connect( self.cameraWorker.on_scanCameras )        # connect changing port
+        # on_closeCamera
+        
+        # Signals from User Interface to Camera-UI
+        # User clicked scan camera, calibrate, start, stop           
+        self.ui.pushButton_CameraStart.clicked.connect( self.cameraUI.on_Stop )
+        self.ui.pushButton_CameraStop.clicked.connect( self.cameraUI.on_Start )
+        self.ui.pushButton_CameraCalibrate.clicked.connect( self.cameraUI.on_Calibrate )
+        self.ui.pushButton_CameraScan.clicked.connect( self.cameraUI.on_ScanCamera )
+        # User selected camera
+        self.ui.comboBoxDropDown_Cameras.currentIndexChanged.connect( self.cameraUI.on_ChangeCamera) # connect changing camera
+        # User selected binning, entered exposure time, frame rate
+        self.ui.comboBox_SelectBinning.currentIndexChanged.connect( self.cameraUI.on_ChangeBinning)  # connect changing binning
+        self.ui.lineEdit_CameraFrameRate.returnPressed.connect( self.cameraUI.on_FrameRateChanged )
+        self.ui.lineEdit_CameraExposureTime.returnPressed.connect( self.cameraUI.on_ExposureTimeChanged )
+
+        self.cameraWorker.moveToThread(self.cameraThread)                                       # move worker to thread
+
+        self.cameraUI.scanCameraRequest.emit()                                                  # request to scan for cameras
 
 
-        # Connect user interface signals to camera        
-        # self.ui.pushButton_CAMERASTART.connect(  self.cameraWorker.on_startCamera )
-        # self.ui.pushButton_CAMERASTOP.connect(   self.cameraWorker.on_stopCamera )
-
-        # self.cameraWorker.moveToThread(self.cameraThread)                                       # move worker to thread
-
-        # self.logger.log(logging.INFO, "[{}]: camera initialized.".format(int(QThread.currentThreadId())))
+        self.logger.log(logging.INFO, "[{}]: camera initialized.".format(int(QThread.currentThreadId())))
 
 
         #----------------------------------------------------------------------------------------------------------------------
         # Processors
         #----------------------------------------------------------------------------------------------------------------------
+        
+        # Camera capture thread
+        self.processThread = QThread()                                                      # create QThread object
+        self.processThread.start()                                                          # start thread which will start worker
 
         # Flatfield
         # flatfield = np.zeros((depth, height, width), dtype=np.uint16)
