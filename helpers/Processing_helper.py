@@ -9,6 +9,23 @@ import logging
 from PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QSignalMapper
 from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
 
+class QProcessWorker(QObject):
+    """ 
+    Process Worker Class
+
+    Signals      
+        = For processWorker
+        NEED TO DEVELOP
+    Slots
+      on_changeBinning
+      on_processRequest
+      
+    """
+
+    @pyqtSlot(list)
+    def on_changeBinning(self, binning):
+
+    
 class QDataCube():
     """ 
     Data Cube Class
@@ -27,6 +44,13 @@ class QDataCube():
       bin15       binning 15x15
       bin18       binning 18x18
       bin20       binning 20x20
+
+    Signals  
+        dataCubeReady    
+        = For processWorker
+        NEED TO DEVELOP
+    Slots
+      on_changeBinning
     """
 
     dataCubeReady = pyqtSignal(np.ndarray)                                          # we have a complete datacube

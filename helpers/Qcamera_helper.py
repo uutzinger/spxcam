@@ -74,8 +74,6 @@ class QCameraUI(QObject):
         stopCameraRequest              # cameraWorker shall stop camera
         setDisplayedChannels           # cameraWorker shall set displayed channels
 
-        = For processWorker
-        NEED TO DEVELOP
 
     Slots
         = Forward requests to cameraWorker
@@ -317,6 +315,7 @@ class QCamera(QObject):
         cameraStatusReady
         cameraFinished
         newCameraListReady
+        fpsReady
         
     Worker functions
         on_startCamera
@@ -336,7 +335,8 @@ class QCamera(QObject):
     cameraStatusReady  = pyqtSignal(list)                                               # camera status is available
     cameraFinished     = pyqtSignal() 
     newCameraListReady = pyqtSignal(list)                                               # new camera list is available
- 
+    fpsReady           = pyqtSignal(float)                                              # fps is available
+
     def __init__(self, parent=None):
         # super().__init__()
         super(QCamera, self).__init__(parent)
@@ -450,18 +450,20 @@ class QCamera(QObject):
             self.configs    = configs
             self.camera = BlackflyCapture(self.configs)
             self.logger.log(logging.DEBUG, "QCamera opened BlackFly camera")
+
+        self.camera.fpsReady.connect(self.fpsReady.emit)
         
         else:
             self.logger.log(logging.ERROR, "QCamera camera type not recognized")
 
     @pyqtSlot(int)
     def on_changeExposure(self, exposure):
-        pass
+        self.camera.exposure(exposure)
 
     @pyqtSlot(int)
     def on_changeFrameRate(self, fps):
-        pass
-              
+        self.camera.fps(fps)
+    
+    # because data cube is allocated in cameraWorker
     @pyqtSlot(list)
     def on_changeBinning(self, binning):
-        pass

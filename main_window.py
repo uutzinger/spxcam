@@ -221,7 +221,7 @@ class mainWindow(QMainWindow):
         # Signals from Camera to Camera-UI
         self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSINReady )
         self.cameraWorker.newCameraListReady.connect(self.cameraUI.on_newCameraListReady  ) #
-
+        
         # Signals from Camera to processWorker
         self.cameraWorker.imageDataReady.connect(   self.processWorker.on_imageDataReady )
 
@@ -255,7 +255,6 @@ class mainWindow(QMainWindow):
         self.cameraWorker.moveToThread(self.cameraThread)                                       # move worker to thread
 
         self.cameraUI.scanCameraRequest.emit()                                                  # request to scan for cameras
-
 
         self.logger.log(logging.INFO, "[{}]: camera initialized.".format(int(QThread.currentThreadId())))
 
