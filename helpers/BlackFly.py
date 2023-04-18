@@ -45,7 +45,7 @@ class BlackflyCapture(QObject):
         
     def update(self):
         """
-        Continously read Capture
+        Continuously read Capture
         """
         last_time = last_emit = time.perf_counter()
         
@@ -176,7 +176,7 @@ class BlackflyCapture(QObject):
             self.logger.log(logging.INFO, "[PySpin]: Camera:GainAuto: {}.".format(self.camera.GainAuto.GetValue()))
         else:
             self.logger.log(logging.WARNING, "[PySpin]: Camera:GainAuto: no access.")
-        # Acquisition Mode = Continous
+        # Acquisition Mode = Continuous
         if self.camera.AcquisitionMode.GetAccessMode() == PySpin.RW:
             self.camera.AcquisitionMode.SetValue(PySpin.AcquisitionMode_Continuous)
             self.logger.log(logging.INFO, "[PySpin]: Camera:AcquistionMode: {}.".format(self.camera.AcquisitionMode.GetValue()))
@@ -188,7 +188,7 @@ class BlackflyCapture(QObject):
             self.logger.log(logging.INFO, "[PySpin]: Camera:ExposureMode: {}.".format(self.camera.ExposureMode.GetValue()))
         else:
             self.logger.log(logging.WARNING, "[PySpin]: Camera:ExposureMode: no access.")
-        # Acquisiton Frame Rate Enable = True
+        # Acquisition Frame Rate Enable = True
         if self.camera.AcquisitionFrameRateEnable.GetAccessMode() == PySpin.RW:
             self.camera.AcquisitionFrameRateEnable.SetValue(True)
             self.logger.log(logging.INFO, "[PySpin]: Camera:AcquisitionFrameRateEnable: {}.".format(self.camera.AcquisitionFrameRateEnable.GetValue()))
