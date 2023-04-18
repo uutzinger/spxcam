@@ -355,7 +355,7 @@ class BlackflyCapture(QObject):
 
     @property
     def offset(self):
-        """returns current sesor offset """
+        """returns current sensor offset """
         if self.camera_open:
             return (self.camera.OffsetX.GetValue(), self.camera.OffsetY.GetValue())
         else: 
@@ -409,7 +409,7 @@ class BlackflyCapture(QObject):
             return (-1, -1)
     @binning.setter
     def binning(self, val):
-        """sets sensor biginning """
+        """sets sensor binning """
         if val is None: return
         if self.camera_open:
             if len(val) > 1: # have horizontal x vertical
@@ -503,7 +503,7 @@ class BlackflyCapture(QObject):
             return
         if self.camera_open:
             if val > 0: 
-                # Setting Autoexposure on
+                # Setting autoexposure on
                 if self.camera.ExposureAuto.GetAccessMode() == PySpin.RW:
                     self.camera.ExposureAuto.SetValue(PySpin.ExposureAuto_Continuous)
                     self.logger.log(logging.INFO, "[PySpin]: Camera:Autoexposure:{}.".format(1))
@@ -517,7 +517,7 @@ class BlackflyCapture(QObject):
                 else:
                     self.logger.log(logging.ERROR, "[PySpin]: Camera:Failed to set Frame Rate to:{}.".format(self._framerate))
             else:
-                # Setting Autoexposure off
+                # Setting autoexposure off
                 if self.camera.ExposureAuto.GetAccessMode() == PySpin.RW:
                     self.camera.ExposureAuto.SetValue(PySpin.ExposureAuto_Off)
                     self.logger.log(logging.INFO, "[PySpin]: Camera:Autoexposure: {}.".format(0))
@@ -561,7 +561,7 @@ class BlackflyCapture(QObject):
 
     @property
     def adc(self):
-        """returns adc bit detpth """
+        """returns adc bit depth """
         if self.camera_open:
             _tmp = self.camera.AdcBitDepth.GetValue()
             if _tmp == PySpin.AdcBitDepth_Bit8:
