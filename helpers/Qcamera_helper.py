@@ -31,7 +31,7 @@ from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel, QFileDialog, 
 # Supported Cameras
 import PySpin
 import cv2
-!!! CHECK INTO SEPARATE FILES OR NOT
+#DOTO CHECK INTO SEPARATE FILES OR NOT
 from helpers.BlackFly import BlackflyCapture
 from helpers.OpenCV import OpenCVCapture
 # Processing
@@ -392,7 +392,7 @@ class QCamera(QObject):
                
     @pyqtSlot(int)
     def on_startCamera(self):
-        !! need to know datacube depth which is the number of selected measurement channels
+       #TODO need to know datacube depth which is the number of selected measurement channels
         self.camera.startAcquisition(depth=depth, flatfield=None)
         # self.camera.datacube.dataCubeReady.connect() # needs to go to processing
         # self.camera.datacube.dataCubeReady.connect() # needs to go to display
