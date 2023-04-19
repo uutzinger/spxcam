@@ -31,7 +31,9 @@ from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel, QFileDialog, 
 # Supported Cameras
 import PySpin
 import cv2
-#DOTO CHECK INTO SEPARATE FILES OR NOT
+
+# TODO CHECK INTO SEPARATE FILES OR NOT
+
 from helpers.BlackFly import BlackflyCapture
 from helpers.OpenCV import OpenCVCapture
 # Processing
@@ -132,7 +134,7 @@ class QCameraUI(QObject):
 
         from configs import blackfly_configs as bf_configs
         from configs import opencv_conf
-        # Search for Camerasigs as cv_configs
+        # Search for camera signatures as cv_configs
         
         self.logger.log(logging.INFO, "[{}]: initialized.".format(int(QThread.currentThreadId())))
    
@@ -266,7 +268,7 @@ class QCameraUI(QObject):
         self.setDisplayedChannelsRequest.emit(indexCube, channelNames)
 
         # what processing
-        # do we want bg-subtraction, flatfield correction, 
+        # do we want bg-subtraction, flat field correction, 
         # binning, temporal filtering, save to file or 
         # save to ram
         
@@ -450,11 +452,11 @@ class QCamera(QObject):
             self.configs    = configs
             self.camera = BlackflyCapture(self.configs)
             self.logger.log(logging.DEBUG, "QCamera opened BlackFly camera")
-
-        self.camera.fpsReady.connect(self.fpsReady.emit)
         
         else:
             self.logger.log(logging.ERROR, "QCamera camera type not recognized")
+
+        self.camera.fpsReady.connect(self.fpsReady.emit)
 
     @pyqtSlot(int)
     def on_changeExposure(self, exposure):
@@ -467,3 +469,4 @@ class QCamera(QObject):
     # because data cube is allocated in cameraWorker
     @pyqtSlot(list)
     def on_changeBinning(self, binning):
+        pass

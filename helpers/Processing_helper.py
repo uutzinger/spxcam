@@ -466,14 +466,14 @@ class threeBandEqualizerProcessor():
        
         start_time = time.perf_counter()
 
-        # Filter #1 (lowpass)
+        # Filter #1 (low pass)
         self.f1p0  += (self.lf * (data      - self.f1p0)) + self.vsa
         self.f1p1  += (self.lf * (self.f1p0 - self.f1p1))
         self.f1p2  += (self.lf * (self.f1p1 - self.f1p2))
         self.f1p3  += (self.lf * (self.f1p2 - self.f1p3))
         self.l      = self.f1p3
 
-        # Filter #2 (highpass)
+        # Filter #2 (high pass)
         self.f2p0  += (self.hf * (data      - self.f2p0)) + self.vsa
         self.f2p1  += (self.hf * (self.f2p0 - self.f2p1))
         self.f2p2  += (self.hf * (self.f2p1 - self.f2p2))
@@ -501,7 +501,7 @@ class threeBandEqualizerProcessor():
 # High Pass Image Processor
 # Poor Man's
 ###############################################################################
-# Construct poor man's lowpass filter y = (1-alpha) * y + alpha * x
+# Construct poor man's low pass filter y = (1-alpha) * y + alpha * x
 # https://dsp.stackexchange.com/questions/54086/single-pole-iir-low-pass-filter-which-is-the-correct-formula-for-the-decay-coe
 # f_s sampling frequency in Hz
 # f_c cut off frequency in Hz
@@ -523,7 +523,7 @@ class poormansHighpassProcessor():
         self.averageData  = np.zeros(res, 'float32')
         self.filteredData  = np.zeros(res, 'float32')
 
-    # After Starting the Thread, this runs continously
+    # After Starting the Thread, this runs continuously
     def highpass(self, data):
         start_time = time.perf_counter()
         self.averageData  = self.movingavg(data, self.averageData, self.alpha)
