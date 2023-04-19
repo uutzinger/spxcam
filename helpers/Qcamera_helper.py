@@ -27,7 +27,8 @@ from enum import Enum
 import numpy as np
 # QT
 from PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QStandardPaths
-from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel, QFileDialog, QImage, QGraphicsScene, QPixmap, QGraphicsPixmapItem
+from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel, QFileDialog,  QGraphicsScene, QGraphicsPixmapItem
+from PyQt5.QtGui import QImage,QPixmap
 # Supported Cameras
 import PySpin
 import cv2
@@ -86,7 +87,7 @@ class QCameraUI(QObject):
         on_ChangeCamera         # emit signal to CameraWorker
         on_FrameRateChanged     # emit signal to CameraWorker
         on_ExposureTimeChanged  # emit signal to CameraWorker
-        on_BinningChanged       # emit signal to CameraWorker
+        on_ChangeBinning      # emit signal to CameraWorker
 
         = Update UI
         on_FPSINReady           # update number on display
@@ -133,7 +134,7 @@ class QCameraUI(QObject):
         # e.g. text, shape etc...
 
         from configs import blackfly_configs as bf_configs
-        from configs import opencv_conf
+        from configs import opencv_configs
         # Search for camera signatures as cv_configs
         
         self.logger.log(logging.INFO, "[{}]: initialized.".format(int(QThread.currentThreadId())))
@@ -304,7 +305,7 @@ class QCameraUI(QObject):
 
 
     @pyqtSlot(list)
-    def on_BinningChanged(self, bin ):
+    def on_ChangeBinning(self, bin ):
         self.changeBinningRequest.emit(bin)        
         
 class QCamera(QObject):
@@ -334,6 +335,7 @@ class QCamera(QObject):
 
     # Signals
     ########################################################################################
+    imageDataReady     = pyqtSignal(list) 
     cameraStatusReady  = pyqtSignal(list)                                               # camera status is available
     cameraFinished     = pyqtSignal() 
     newCameraListReady = pyqtSignal(list)                                               # new camera list is available
@@ -395,6 +397,7 @@ class QCamera(QObject):
     @pyqtSlot(int)
     def on_startCamera(self):
        #TODO need to know datacube depth which is the number of selected measurement channels
+        depth=10 # TODO This just random number
         self.camera.startAcquisition(depth=depth, flatfield=None)
         # self.camera.datacube.dataCubeReady.connect() # needs to go to processing
         # self.camera.datacube.dataCubeReady.connect() # needs to go to display
@@ -452,7 +455,7 @@ class QCamera(QObject):
             self.configs    = configs
             self.camera = BlackflyCapture(self.configs)
             self.logger.log(logging.DEBUG, "QCamera opened BlackFly camera")
-        
+
         else:
             self.logger.log(logging.ERROR, "QCamera camera type not recognized")
 
