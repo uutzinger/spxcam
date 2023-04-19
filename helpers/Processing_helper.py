@@ -24,6 +24,7 @@ class QProcessWorker(QObject):
 
     @pyqtSlot(list)
     def on_changeBinning(self, binning):
+       self
 
     
 class QDataCube():
@@ -568,7 +569,7 @@ class poormansHighpassProcessor():
 ###############################################################################
 # Urs Utzinger 2022
 
-class runningsumHighpassProcessor(Thread):
+class runningsumHighpassProcessor(QThread):
     """Highpass filter"""
 
     # Initialize the Processor Thread
@@ -578,7 +579,7 @@ class runningsumHighpassProcessor(Thread):
         self.data_lowpass  = np.zeros(res, 'float32')
         self.data_highpass = np.zeros(res, 'float32')
 
-        self.circular_buffer = collections.deque(maxlen=delay)
+        self.circular_buffer = self.collections.deque(maxlen=delay)
         # initialize buffer with zeros
         for i in range(delay):
             self.circular_buffer.append(self.data_lowpass)
@@ -600,6 +601,6 @@ class runningsumHighpassProcessor(Thread):
         xnd = self.circular_buffer.popleft()          # x(N-D)
         self.circular_buffer.append(data)             # put new data into delay line
         yn1 = self.data_lowpass                       # y(n-1)
-        self.data_lowpass = runsum(xn, xnd, yn1)      # y(n) = x(n) - x(n-D) + y(n-1)
-        self.data_hihgpass = highpass(data, self.data_lowpass)
+        self.data_lowpass = self.runsum(xn, xnd, yn1)      # y(n) = x(n) - x(n-D) + y(n-1)
+        self.data_hihgpass = self.highpass(data, self.data_lowpass)
         total_time += time.perf_counter() - start_time
