@@ -369,8 +369,11 @@ class QCamera(QObject):
         _camListSize=_cam_list.GetSize()
         for camera_num in range(_cam_list.GetSize()):
             _cam = _cam_list.GetByIndex(camera_num)            
-            arr.extend({"name": _cam.DeviceModelName.GetValue(), "number": camera_num, "fourcc": "FLIR", "width": int(_cam.Width.GetValue()), "height": int(_cam.Height.GetValue())})
-        _cam_list.Clear()          # clear camera list before releasing system
+            _camWidth=720 # int(_cam.Width.GetValue())
+            _camHeight=540 # int(_cam.Height.GetValue())            
+            arr.extend([{"name": _cam.TLDevice.DeviceModelName.GetValue(), "number": camera_num, "fourcc": "FLIR", "width": _camWidth, "height":_camHeight}])
+            del _cam
+        _cam_list.Clear() # clear camera list before releasing system        
         _system.ReleaseInstance()        
         return arr
         
@@ -380,7 +383,7 @@ class QCamera(QObject):
         '''
         index = 0
         arr = []
-      i = numcams
+        i = numcams
         while i > 0:
             cap = cv2.VideoCapture(index)
             if cap.read()[0]:
@@ -426,7 +429,8 @@ class QCamera(QObject):
         camBlackFly = self._probeBlackFlyCameras()
         self.logger.log(logging.DEBUG, "QCamera scanned fro BlackFly cameras")
         
-        self.cameraDesc  = [{"name": "None", "number": -1, "fourcc": "NULL", "width": 0, "height": 0}] 
+        self.cameraDesc = [{"name": "None", "number": -1, "fourcc": "NULL", "width": 0, "height": 0}] + camBlackFly + camCV2 
+       
         if not camBlackFly:
             self.cameraDesc.extend(camBlackFly)
         if not camCV2:
