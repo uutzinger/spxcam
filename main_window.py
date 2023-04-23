@@ -221,14 +221,14 @@ class mainWindow(QMainWindow):
 
 
         # Signals from Camera to Camera-UI
-        #self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSINReady )
+        self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSInReady )
         self.cameraWorker.newCameraListReady.connect(self.cameraUI.on_newCameraListReady  ) #
         
         # Signals from Camera to processWorker
         #self.cameraWorker.imageDataReady.connect(   self.processWorker.on_imageDataReady )
 
         # Signals from Processor to Camera-UI
-        #self.processWorker.fpsReady.connect(          self.cameraUI.on_FPSOUTReady )
+        self.cameraWorker.fpsReady.connect(          self.cameraUI.on_FPSOutReady )
         # self.processWorker.newImageDataReady.connect( self.cameraUI.on_newImageDataReady )
 
         # Signals from Camera-UI to Camera
