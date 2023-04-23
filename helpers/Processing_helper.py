@@ -57,7 +57,7 @@ class QDataCube():
     dataCubeReady = pyqtSignal(np.ndarray)                                          # we have a complete datacube
     
     def __init__(self, parent=None, width=720, height=540, depth=14, flatfield = None):
-        super(QDataCube, self).__init__(parent)
+        super(QDataCube, self).__init__()
 
         self.logger = logging.getLogger("QDataC_")           
         
@@ -74,7 +74,7 @@ class QDataCube():
 
         if flatfield is None:
             self.logger.log(logging.ERROR, "Status:Need to provide flatfield!")
-            return False
+            return None
         else: 
             self.ff = flatfield
 
