@@ -7,8 +7,9 @@ import cv2
 # QT
 from   PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QSignalMapper
 from   PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
+from helpers.Processing_helper import QDataCube
 #QT System
-import logging, time
+import logging, time,sys
 # Numerical Tools
 import numpy as np
 
@@ -142,7 +143,7 @@ class OpenCVCapture(QObject):
         except: pass
 
     def startAcquisition(self, depth=1, flatfield=None):
-        # create datacube structure
+        # create datacube structure       
         self.datacube = QDataCube(width=self.camera.width, height=self.camera.height, depth=depth, flatfield=flatfield)
         self.stopped = False
         self.logger.log(logging.INFO, "[OpenCV]: Acquiring images.")
