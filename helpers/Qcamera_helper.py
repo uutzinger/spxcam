@@ -162,8 +162,8 @@ class QCameraUI(QObject):
         """        
         DisplayedChannels  = np.zeros(NUM_CHANNELS, dtype=np.bool_)
         
-        for channel in range(NUM_CHANNELS):
-            checkBox = self.ui.findChild( QCheckBox, "checkBox_MeasureChannel"+str(channel))
+        for channel in range(NUM_CHANNELS-1):
+            checkBox = self.ui.findChild( QCheckBox, "checkBox_MeasureChannel"+str(channel+1))
             if checkBox.isChecked:
                 DisplayedChannels[channel+1] = True
             else:
@@ -207,7 +207,7 @@ class QCameraUI(QObject):
     def on_newCameraListReady(self, cameraDesc):
         """ 
         New camera list available
-        """
+        """        
         self.logger.log(logging.DEBUG, "[{}]: camera list received.".format(int(QThread.currentThreadId())))
         self.cameraNames  = []
         self.cameraNumbers = []
@@ -255,14 +255,16 @@ class QCameraUI(QObject):
         j=0
         for i in range(NUM_CHANNELS):
             if bChannels[i]:
-               indexCube.append(j)
-               indexNames.append(i)
+              # indexCube.append(j)
+               indexCube = np.append(indexCube, j)
+               indexNames = np.append(indexNames, i)
+               #indexNames.append(i)
             if mChannels[i]:
                j += 1
         # the names of the channels are:
         channelNames = []
-        for i in indexNames:
-            checkBoxDisplay  = self.ui.findChild(QCheckBox, "checkBox_DisplayChannel"+str(i))
+        for i in range(len(indexNames)):
+            checkBoxDisplay  = self.ui.findChild(QCheckBox, "checkBox_DisplayChannel"+str(i))            
             channelNames.append(checkBoxDisplay.text())
 
         # announce channels display
@@ -276,12 +278,12 @@ class QCameraUI(QObject):
         # what to analyze
         # do we want Analysis, Color, Physio, Spectrum?
         
-        # emit signal to camera handler to start acquisition
-        self.startCamera.emit()
+        # emit signal to camera handler to start acquisition       
+        self.startCameraRequest.emit()
 
     @pyqtSlot()
     def on_Stop(self):
-        self.stopCameraRequest.emit()
+        self.stopCameraRequest.emit()       
 
     @pyqtSlot()
     def on_ScanCamera(self):
@@ -306,8 +308,8 @@ class QCameraUI(QObject):
 
     @pyqtSlot(list)
     def on_ChangeBinning(self, bin ):
-        self.changeBinningRequest.emit(bin)        
-        
+        self.changeBinningRequest.emit(bin) 
+         
 class QCamera(QObject):
     """
     Camera Interface for QT
@@ -357,15 +359,16 @@ class QCamera(QObject):
     # Functions internal
     ########################################################################################
 
-    def _probeBlackFlyCameras():
+    def _probeBlackFlyCameras(self):
         '''
         Scans cameras and returns fourcc, width and height
         '''
         arr=[]
         _system = PySpin.System.GetInstance() # open library
         _cam_list = _system.GetCameras()
+        _camListSize=_cam_list.GetSize()
         for camera_num in range(_cam_list.GetSize()):
-            _cam = _cam_list.GetByIndex(camera_num)        
+            _cam = _cam_list.GetByIndex(camera_num)            
             arr.extend({"name": _cam.DeviceModelName.GetValue(), "number": camera_num, "fourcc": "FLIR", "width": int(_cam.Width.GetValue()), "height": int(_cam.Height.GetValue())})
         _cam_list.Clear()          # clear camera list before releasing system
         _system.ReleaseInstance()        
@@ -377,7 +380,7 @@ class QCamera(QObject):
         '''
         index = 0
         arr = []
-        i = numcams
+      i = numcams
         while i > 0:
             cap = cv2.VideoCapture(index)
             if cap.read()[0]:
@@ -386,7 +389,7 @@ class QCamera(QObject):
                 width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
                 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
                 cap.release()
-                arr.extend({"name": "CV - " + str(camera_num), "number": camera_num, "fourcc": fourcc, "width": width, "height": height})
+                arr.extend([{"name": "CV - " + str(camera_num), "number": camera_num, "fourcc": fourcc, "width": width, "height": height}])
             else:
                 cap.release()
                 break
@@ -394,8 +397,8 @@ class QCamera(QObject):
             i -= 1
         return arr
                
-    @pyqtSlot(int)
-    def on_startCamera(self):
+    # @pyqtSlot()    
+    def on_startCamera(self):        
        #TODO need to know datacube depth which is the number of selected measurement channels
         depth=10 # TODO This just random number
         self.camera.startAcquisition(depth=depth, flatfield=None)
@@ -417,7 +420,7 @@ class QCamera(QObject):
             if self.camera.cam_open:
                 self.camera.stopAcquisition()
                 self.camera.closeCamera()
-        except: pass
+        except: pass        
         camCV2      = self._probeOpenCVCameras()
         self.logger.log(logging.DEBUG, "QCamera scanned for openCV cameras")
         camBlackFly = self._probeBlackFlyCameras()
@@ -429,7 +432,7 @@ class QCamera(QObject):
         if not camCV2:
             self.cameraDesc.extend(camCV2)
         self.newCameraListReady.emit(self.cameraDesc)
-             
+        
     @pyqtSlot(int)
     def on_changeCamera(self, indx):
         # stop camera and acquisition
