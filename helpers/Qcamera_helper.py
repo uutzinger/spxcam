@@ -381,9 +381,11 @@ class QCamera(QObject):
         '''
         Scans cameras and returns default fourcc, width and height
         '''
-        index = 0
-        arr = []
-        i = numcams
+        index = 0        
+        arr = []      
+        camera_num=0
+        #i = range(numcams)
+        i=1
         while i > 0:
             cap = cv2.VideoCapture(index)
             if cap.read()[0]:
@@ -393,7 +395,7 @@ class QCamera(QObject):
                 height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
                 cap.release()
                 arr.extend([{"name": "CV - " + str(camera_num), "number": camera_num, "fourcc": fourcc, "width": width, "height": height}])
-            else:
+            else:               
                 cap.release()
                 break
             camera_num += 1
@@ -437,7 +439,8 @@ class QCamera(QObject):
             self.cameraDesc.extend(camCV2)
         self.newCameraListReady.emit(self.cameraDesc)
         
-    @pyqtSlot(int)
+             
+    #@pyqtSlot(int)
     def on_changeCamera(self, indx):
         # stop camera and acquisition
         try: 
@@ -453,7 +456,7 @@ class QCamera(QObject):
             self.cameratype = cameraType.opencv
             from configs.opencv_configs import configs as configs
             self.configs    = configs
-            self.camera = OpenCVCapture(self.configs)
+            self.camera = OpenCVCapture(camera_num=0,configs=self.configs)
             self.logger.log(logging.DEBUG, "QCamera opened OpenCV camera")
             
         elif "Blackfly" in _cameraDescription['name']:
@@ -466,7 +469,7 @@ class QCamera(QObject):
         else:
             self.logger.log(logging.ERROR, "QCamera camera type not recognized")
 
-        self.camera.fpsReady.connect(self.fpsReady.emit)
+        #self.camera.fpsReady.connect(self.fpsReady.emit)
 
     @pyqtSlot(int)
     def on_changeExposure(self, exposure):
