@@ -369,10 +369,12 @@ class QCamera(QObject):
         _cam_list = _system.GetCameras()
         _camListSize=_cam_list.GetSize()
         for camera_num in range(_cam_list.GetSize()):
-            _cam = _cam_list.GetByIndex(camera_num)            
-            _camWidth=720 # )int(_cam.width)
-            _camHeight=540 # int(_cam.Height.GetValue())            
+            _cam = _cam_list.GetByIndex(camera_num)  
+            _cam.Init()          
+            _camWidth= int(_cam.Width.GetMax())
+            _camHeight= int(_cam.Height.GetMax())            
             arr.extend([{"name": _cam.TLDevice.DeviceModelName.GetValue(), "number": camera_num, "fourcc": "FLIR", "width": _camWidth, "height":_camHeight}])
+            _cam.DeInit()
             del _cam
         _cam_list.Clear() # clear camera list before releasing system        
         _system.ReleaseInstance()        
