@@ -1803,7 +1803,7 @@
         <string>Start</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_CameraStrop">
+      <widget class="QPushButton" name="pushButton_CameraStop">
        <property name="geometry">
         <rect>
          <x>87</x>
@@ -1821,7 +1821,7 @@
         <string>Stop</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="pushButton_Calibrate">
+      <widget class="QPushButton" name="pushButton_CameraCalibrate">
        <property name="geometry">
         <rect>
          <x>5</x>

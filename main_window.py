@@ -33,7 +33,7 @@ from helpers.Qserial_helper      import QSerial, QSerialUI
 from helpers.Qlightsource_helper import QLightSource
 from helpers.Qcamera_helper      import QCamera, QCameraUI, cameraType
 # from helpers.Qdisplay_helper     import QDisplay, QDisplayUI
-# from Processing_helper           import QDataCube
+from helpers.Processing_helper           import QDataCube
 
 # QT
 # Deal with high resolution displays
@@ -202,31 +202,33 @@ class mainWindow(QMainWindow):
         #----------------------------------------------------------------------------------------------------------------------
         # Camera
         #----------------------------------------------------------------------------------------------------------------------
-        
+        from configs import blackfly_configs as configs
+
         # Camera capture thread
         self.cameraThread = QThread()                                                      # create QThread object
-        self.cameraThread.start()                                                          # start thread which will start worker
+        self.cameraThread.start()                                                               # start thread which will start worker
 
         # Create user interface hook for camera
         self.cameraUI     = QCameraUI(ui=self.ui)                                          # create serial user interface object
 
         # Create camera worker
         self.cameraWorker = QCamera()
-
+               
         # Connect worker / thread
-        self.cameraWorker.finished.connect(         self.cameraThread.quit               ) # if worker emits finished quite worker thread
-        self.cameraWorker.finished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
+        self.cameraWorker.cameraFinished.connect(         self.cameraThread.quit               ) # if worker emits finished quite worker thread
+        self.cameraWorker.cameraFinished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
         self.cameraThread.finished.connect(         self.cameraThread.deleteLater        ) # delete thread at some time
 
+
         # Signals from Camera to Camera-UI
-        self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSINReady )
+        self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSInReady )
         self.cameraWorker.newCameraListReady.connect(self.cameraUI.on_newCameraListReady  ) #
         
         # Signals from Camera to processWorker
-        self.cameraWorker.imageDataReady.connect(   self.processWorker.on_imageDataReady )
+        #self.cameraWorker.imageDataReady.connect(   self.processWorker.on_imageDataReady )
 
         # Signals from Processor to Camera-UI
-        # self.processWorker.fpsReady.connect(          self.cameraUI.on_FPSOUTReady )
+        self.cameraWorker.fpsReady.connect(          self.cameraUI.on_FPSOutReady )
         # self.processWorker.newImageDataReady.connect( self.cameraUI.on_newImageDataReady )
 
         # Signals from Camera-UI to Camera
@@ -241,23 +243,22 @@ class mainWindow(QMainWindow):
         
         # Signals from User Interface to Camera-UI
         # User clicked scan camera, calibrate, start, stop           
-        self.ui.pushButton_CameraStart.clicked.connect( self.cameraUI.on_Stop )
-        self.ui.pushButton_CameraStop.clicked.connect( self.cameraUI.on_Start )
+        self.ui.pushButton_CameraStart.clicked.connect( self.cameraUI.on_Start )
+        self.ui.pushButton_CameraStop.clicked.connect( self.cameraUI.on_Stop )
         self.ui.pushButton_CameraCalibrate.clicked.connect( self.cameraUI.on_Calibrate )
-        self.ui.pushButton_CameraScan.clicked.connect( self.cameraUI.on_ScanCamera )
+        self.ui.pushButton_CameraScan.clicked.connect( self.cameraUI.on_ScanCamera )     
         # User selected camera
         self.ui.comboBoxDropDown_Cameras.currentIndexChanged.connect( self.cameraUI.on_ChangeCamera) # connect changing camera
         # User selected binning, entered exposure time, frame rate
-        self.ui.comboBox_SelectBinning.currentIndexChanged.connect( self.cameraUI.on_ChangeBinning)  # connect changing binning
-        self.ui.lineEdit_CameraFrameRate.returnPressed.connect( self.cameraUI.on_FrameRateChanged )
-        self.ui.lineEdit_CameraExposureTime.returnPressed.connect( self.cameraUI.on_ExposureTimeChanged )
-
+       # self.ui.comboBox_SelectBinning.currentIndexChanged.connect( self.cameraUI.on_ChangeBinning)  # connect changing binning
+        #self.ui.lineEdit_CameraFrameRate.returnPressed.connect( self.cameraUI.on_FrameRateChanged )
+        #self.ui.lineEdit_CameraExposureTime.returnPressed.connect( self.cameraUI.on_ExposureTimeChanged )
+       
         self.cameraWorker.moveToThread(self.cameraThread)                                       # move worker to thread
 
         self.cameraUI.scanCameraRequest.emit()                                                  # request to scan for cameras
 
         self.logger.log(logging.INFO, "[{}]: camera initialized.".format(int(QThread.currentThreadId())))
-
 
         #----------------------------------------------------------------------------------------------------------------------
         # Processors

@@ -24,9 +24,10 @@ class QProcessWorker(QObject):
 
     @pyqtSlot(list)
     def on_changeBinning(self, binning):
+       self
 
     
-class QDataCube():
+class QDataCube(QObject):
     """ 
     Data Cube Class
       initialize  create datacube
@@ -56,7 +57,7 @@ class QDataCube():
     dataCubeReady = pyqtSignal(np.ndarray)                                          # we have a complete datacube
     
     def __init__(self, parent=None, width=720, height=540, depth=14, flatfield = None):
-        super(QDataCube, self).__init__(parent)
+        super(QDataCube, self).__init__()
 
         self.logger = logging.getLogger("QDataC_")           
         
@@ -69,11 +70,12 @@ class QDataCube():
         self.bg        = np.zeros((height, width), 'uint8')                          # allocate space for background image
         self.flat      = 256*np.ones((depth, height, width), 'uint16')               # flatfield correction image, scaled so that 255=100%
         self.inten     = np.zeros(depth, 'uint16')                                   # average intentisy in each image of the stack
-        self.data_indx = 0                                                           # current location to fill the data cube with new image
+        self.data_indx = 0  
+                                                                 # current location to fill the data cube with new image
 
         if flatfield is None:
             self.logger.log(logging.ERROR, "Status:Need to provide flatfield!")
-            return False
+            return None
         else: 
             self.ff = flatfield
 
@@ -82,7 +84,8 @@ class QDataCube():
         self.data[self.data_indx,:,:] = image
         self.data_indx += 1
         if self.data_indx >= self.depth:
-            self.dataCubeReady.emit(self.data)
+            # TODO this done yet just comment out            
+            self.dataCubeReady.emit(self.data) 
             self.data_indx = 0
 
     def sort(self, delta: tuple = (64,64)):
@@ -568,7 +571,7 @@ class poormansHighpassProcessor():
 ###############################################################################
 # Urs Utzinger 2022
 
-class runningsumHighpassProcessor(Thread):
+class runningsumHighpassProcessor(QThread):
     """Highpass filter"""
 
     # Initialize the Processor Thread
@@ -578,7 +581,7 @@ class runningsumHighpassProcessor(Thread):
         self.data_lowpass  = np.zeros(res, 'float32')
         self.data_highpass = np.zeros(res, 'float32')
 
-        self.circular_buffer = collections.deque(maxlen=delay)
+        self.circular_buffer = self.collections.deque(maxlen=delay)
         # initialize buffer with zeros
         for i in range(delay):
             self.circular_buffer.append(self.data_lowpass)
@@ -600,6 +603,6 @@ class runningsumHighpassProcessor(Thread):
         xnd = self.circular_buffer.popleft()          # x(N-D)
         self.circular_buffer.append(data)             # put new data into delay line
         yn1 = self.data_lowpass                       # y(n-1)
-        self.data_lowpass = runsum(xn, xnd, yn1)      # y(n) = x(n) - x(n-D) + y(n-1)
-        self.data_hihgpass = highpass(data, self.data_lowpass)
+        self.data_lowpass = self.runsum(xn, xnd, yn1)      # y(n) = x(n) - x(n-D) + y(n-1)
+        self.data_hihgpass = self.highpass(data, self.data_lowpass)
         total_time += time.perf_counter() - start_time

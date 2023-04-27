@@ -4,11 +4,13 @@
 
 # Open CV Camera Driver
 import cv2
+from threading import Thread,Lock
 # QT
 from   PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QSignalMapper
 from   PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
+from helpers.Processing_helper import QDataCube
 #QT System
-import logging, time
+import logging, time,sys
 # Numerical Tools
 import numpy as np
 
@@ -24,10 +26,11 @@ class OpenCVCapture(QObject):
         camera_num: int = 0,             # more than one camera?
         res: tuple = None,               # width, height
         exposure: float = None):         # exposure over write
-        
+        super().__init__()
         # populate desired settings from configuration file or function arguments
         ####################################################################
         self._camera_num       = camera_num
+        self.logger = logging.getLogger("OpenCV.py")
         if exposure is not None:
             self._exposure    = exposure  
         else: 
@@ -59,6 +62,7 @@ class OpenCVCapture(QObject):
         self.frame_time   = 0.0
         self.measured_fps = 0.0
         self.stopped         = True
+        self.camera_lock        = Lock()
 
     # After Stating of the Thread, this runs continuously
     def update(self):
@@ -66,14 +70,14 @@ class OpenCVCapture(QObject):
         Continuously read Capture
         """
         last_time = last_emit = time.perf_counter()
-
-        while not self.stopped:
+       
+        while not self.stopped:           
             current_time = time.perf_counter()
             if self.camera is not None:
                 with self.camera_lock:
                     _, _img = self.camera.read()
                 self.frame_time = int(current_time*1000)
-                if len(_img.shape>=3):
+                if (len(_img.shape)>=3):
                     img = cv2.cvtColor(_img, cv2.COLOR_BGR2GRAY)
                 else:
                     img = _img
@@ -86,8 +90,10 @@ class OpenCVCapture(QObject):
             self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - last_time)) # low pass filter
             last_time = current_time
             if current_time - last_emit > 0.5:
-                self.FPS.emit(self.measured_fps)
+                #self.FPS.emit(self.measured_fps)
                 last_emit =  current_time
+                self.fpsReady.emit(self.measured_fps)
+                #self.fpsReady=self.measured_fps
                 self.logger.log(logging.DEBUG, "[CAM]:FPS:{}.".format(self.measured_fps))
 
     def openCamera(self):
@@ -142,9 +148,12 @@ class OpenCVCapture(QObject):
         except: pass
 
     def startAcquisition(self, depth=1, flatfield=None):
-        # create datacube structure
-        self.datacube = QDataCube(width=self.camera.width, height=self.camera.height, depth=depth, flatfield=flatfield)
+        # Staring Camera
+        self.openCamera()       
+        # create datacube structure       
+        self.datacube = QDataCube(width=self.width, height=self.height, depth=depth, flatfield=flatfield)
         self.stopped = False
+        self.fpsReady.emit(12)
         self.logger.log(logging.INFO, "[OpenCV]: Acquiring images.")
     
     def stopAcquisition(self):

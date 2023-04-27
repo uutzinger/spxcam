@@ -8,8 +8,9 @@ from   PySpin.PySpin import TriggerMode_Off, TriggerSource_Software
 # QT
 from   PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QSignalMapper
 from   PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
+from helpers.Processing_helper import QDataCube
 #QT System
-import logging, time
+import logging, time,sys
 # Numerical Tools
 import numpy as np
 
