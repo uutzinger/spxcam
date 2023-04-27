@@ -370,7 +370,7 @@ class QCamera(QObject):
         _camListSize=_cam_list.GetSize()
         for camera_num in range(_cam_list.GetSize()):
             _cam = _cam_list.GetByIndex(camera_num)            
-            _camWidth=720 # int(_cam.Width.GetValue())
+            _camWidth=720 # )int(_cam.width)
             _camHeight=540 # int(_cam.Height.GetValue())            
             arr.extend([{"name": _cam.TLDevice.DeviceModelName.GetValue(), "number": camera_num, "fourcc": "FLIR", "width": _camWidth, "height":_camHeight}])
             del _cam
@@ -378,26 +378,26 @@ class QCamera(QObject):
         _system.ReleaseInstance()        
         return arr
         
-    def _probeOpenCVCameras(numcams: int = 10):
+    def _probeOpenCVCameras(self,numcams: int = 10):
         '''
         Scans cameras and returns default fourcc, width and height
-        '''
-        index = 0        
+        '''              
         arr = []      
         camera_num=0
-        #i = range(numcams)
-        i=1
+        i = numcams       
         while i > 0:
-            cap = cv2.VideoCapture(index)
-            if cap.read()[0]:
-                tmp = cap.get(cv2.CAP_PROP_FOURCC)
-                fourcc = "".join([chr((int(tmp) >> 8 * i) & 0xFF) for i in range(4)])
-                width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-                height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                cap.release()
-                arr.extend([{"name": "CV - " + str(camera_num), "number": camera_num, "fourcc": fourcc, "width": width, "height": height}])
-            else:               
-                cap.release()
+            cap = cv2.VideoCapture(camera_num)
+            if cap.isOpened():
+                if cap.read()[0]:
+                    tmp = cap.get(cv2.CAP_PROP_FOURCC)
+                    fourcc = "".join([chr((int(tmp) >> 8 * i) & 0xFF) for i in range(4)])
+                    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                    cap.release()
+                    arr.extend([{"name": "CV - " + str(camera_num), "number": camera_num, "fourcc": fourcc, "width": width, "height": height}])
+                else:               
+                    cap.release()
+            else:
                 break
             camera_num += 1
             i -= 1
@@ -435,10 +435,6 @@ class QCamera(QObject):
         
         self.cameraDesc = [{"name": "None", "number": -1, "fourcc": "NULL", "width": 0, "height": 0}] + camBlackFly + camCV2 
        
-        if not camBlackFly:
-            self.cameraDesc.extend(camBlackFly)
-        if not camCV2:
-            self.cameraDesc.extend(camCV2)
         self.newCameraListReady.emit(self.cameraDesc)
         
              
