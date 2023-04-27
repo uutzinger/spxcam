@@ -300,7 +300,7 @@ if __name__ == "__main__":
     from PyQt5 import QtWidgets
     import logging
     
-    # set logging lelvel
+    # set logging level
     # CRITICAL  50
     # ERROR     40
     # WARNING   30
