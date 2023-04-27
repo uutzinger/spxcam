@@ -70,8 +70,8 @@ class OpenCVCapture(QObject):
         Continuously read Capture
         """
         last_time = last_emit = time.perf_counter()
-
-        while not self.stopped:
+       
+        while not self.stopped:           
             current_time = time.perf_counter()
             if self.camera is not None:
                 with self.camera_lock:
@@ -92,6 +92,8 @@ class OpenCVCapture(QObject):
             if current_time - last_emit > 0.5:
                 #self.FPS.emit(self.measured_fps)
                 last_emit =  current_time
+                self.fpsReady.emit(self.measured_fps)
+                #self.fpsReady=self.measured_fps
                 self.logger.log(logging.DEBUG, "[CAM]:FPS:{}.".format(self.measured_fps))
 
     def openCamera(self):
@@ -147,10 +149,11 @@ class OpenCVCapture(QObject):
 
     def startAcquisition(self, depth=1, flatfield=None):
         # Staring Camera
-        self.openCamera()
+        self.openCamera()       
         # create datacube structure       
         self.datacube = QDataCube(width=self.width, height=self.height, depth=depth, flatfield=flatfield)
         self.stopped = False
+        self.fpsReady.emit(12)
         self.logger.log(logging.INFO, "[OpenCV]: Acquiring images.")
     
     def stopAcquisition(self):
