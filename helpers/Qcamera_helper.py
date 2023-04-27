@@ -27,7 +27,7 @@ from enum import Enum
 import numpy as np
 # QT
 from PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QStandardPaths
-from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel, QFileDialog,  QGraphicsScene, QGraphicsPixmapItem
+from PyQt5.QtWidgets import QLineEdit,QLCDNumber, QSlider, QCheckBox, QLabel, QFileDialog,  QGraphicsScene, QGraphicsPixmapItem
 from PyQt5.QtGui import QImage,QPixmap
 # Supported Cameras
 import PySpin
@@ -117,11 +117,11 @@ class QCameraUI(QObject):
         super(QCameraUI, self).__init__(parent)
 
         self.logger = logging.getLogger("CameraUI_") 
- 
+      
         if ui is None:
             self.logger.log(logging.ERROR, "[{}]: need to have access to User Interface".format(int(QThread.currentThreadId())))
         self.ui = ui
-
+       
         # create graphics scene and place it in the graphicsView
         self.scene = QGraphicsScene(self)
         self.ui.graphicsView.setScene(self.scene)
@@ -178,7 +178,8 @@ class QCameraUI(QObject):
         """
         this will update frames per second display
         """
-        self.ui.lcdNumber_FPSIN.display("{:5.1f}".format(fps)) 
+        self.logger.log(logging.DEBUG, "[CAM]:Sent To DisplayFPS:{}.".format(fps))
+        self.ui.lcdNumber_FPSIN.display("{:5.1f}".format(fps))   
 
     @pyqtSlot(float)
     def on_FPSOutReady(self, fps):
@@ -403,7 +404,8 @@ class QCamera(QObject):
         return arr
                
     # @pyqtSlot()    
-    def on_startCamera(self):        
+    def on_startCamera(self):    
+            
        #TODO need to know datacube depth which is the number of selected measurement channels
         depth=10 # TODO This just random number
         self.camera.startAcquisition(depth=depth, flatfield=None)
@@ -468,8 +470,8 @@ class QCamera(QObject):
 
         else:
             self.logger.log(logging.ERROR, "QCamera camera type not recognized")
-
-        #self.camera.fpsReady.connect(self.fpsReady.emit)
+       
+        self.camera.fpsReady.connect(self.fpsReady.emit)
 
     @pyqtSlot(int)
     def on_changeExposure(self, exposure):
