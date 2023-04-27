@@ -33,7 +33,7 @@ from helpers.Qserial_helper      import QSerial, QSerialUI
 from helpers.Qlightsource_helper import QLightSource
 from helpers.Qcamera_helper      import QCamera, QCameraUI, cameraType
 # from helpers.Qdisplay_helper     import QDisplay, QDisplayUI
-# from Processing_helper           import QDataCube
+from helpers.Processing_helper           import QDataCube
 
 # QT
 # Deal with high resolution displays
@@ -213,7 +213,7 @@ class mainWindow(QMainWindow):
 
         # Create camera worker
         self.cameraWorker = QCamera()
-
+               
         # Connect worker / thread
         self.cameraWorker.cameraFinished.connect(         self.cameraThread.quit               ) # if worker emits finished quite worker thread
         self.cameraWorker.cameraFinished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
@@ -246,14 +246,14 @@ class mainWindow(QMainWindow):
         self.ui.pushButton_CameraStart.clicked.connect( self.cameraUI.on_Start )
         self.ui.pushButton_CameraStop.clicked.connect( self.cameraUI.on_Stop )
         self.ui.pushButton_CameraCalibrate.clicked.connect( self.cameraUI.on_Calibrate )
-        self.ui.pushButton_CameraScan.clicked.connect( self.cameraUI.on_ScanCamera )
+        self.ui.pushButton_CameraScan.clicked.connect( self.cameraUI.on_ScanCamera )     
         # User selected camera
         self.ui.comboBoxDropDown_Cameras.currentIndexChanged.connect( self.cameraUI.on_ChangeCamera) # connect changing camera
         # User selected binning, entered exposure time, frame rate
        # self.ui.comboBox_SelectBinning.currentIndexChanged.connect( self.cameraUI.on_ChangeBinning)  # connect changing binning
         #self.ui.lineEdit_CameraFrameRate.returnPressed.connect( self.cameraUI.on_FrameRateChanged )
         #self.ui.lineEdit_CameraExposureTime.returnPressed.connect( self.cameraUI.on_ExposureTimeChanged )
-
+       
         self.cameraWorker.moveToThread(self.cameraThread)                                       # move worker to thread
 
         self.cameraUI.scanCameraRequest.emit()                                                  # request to scan for cameras
