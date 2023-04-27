@@ -27,7 +27,7 @@ class QProcessWorker(QObject):
        self
 
     
-class QDataCube():
+class QDataCube(QObject):
     """ 
     Data Cube Class
       initialize  create datacube
@@ -70,7 +70,8 @@ class QDataCube():
         self.bg        = np.zeros((height, width), 'uint8')                          # allocate space for background image
         self.flat      = 256*np.ones((depth, height, width), 'uint16')               # flatfield correction image, scaled so that 255=100%
         self.inten     = np.zeros(depth, 'uint16')                                   # average intentisy in each image of the stack
-        self.data_indx = 0                                                           # current location to fill the data cube with new image
+        self.data_indx = 0  
+                                                                 # current location to fill the data cube with new image
 
         if flatfield is None:
             self.logger.log(logging.ERROR, "Status:Need to provide flatfield!")
@@ -83,7 +84,8 @@ class QDataCube():
         self.data[self.data_indx,:,:] = image
         self.data_indx += 1
         if self.data_indx >= self.depth:
-            self.dataCubeReady.emit(self.data)
+            # TODO this done yet just comment out            
+            self.dataCubeReady.emit(self.data) 
             self.data_indx = 0
 
     def sort(self, delta: tuple = (64,64)):
