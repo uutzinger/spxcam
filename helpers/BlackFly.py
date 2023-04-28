@@ -43,33 +43,33 @@ class BlackflyCapture(QObject):
         self.frame_time   = 0.0
         self.measured_fps = 0.0
         self.stopped = True
+        self.last_update_time = time.perf_counter()
+        self.last_datacube_emit = time.perf_counter()
         
     def update(self):
         """
         Continuously read Capture
         """
-        last_time = last_emit = time.perf_counter()
         
-        while not self.stopped:
-            current_time = time.perf_counter()
+        current_time = time.perf_counter()
 
-            # Get New Image
-            if self.camera is not None:
-                image_result = self.camera.GetNextImage(1000) # timeout in ms, function blocks until timeout
-                if not image_result.IsIncomplete(): # should always be complete
-                    # self.frame_time = self.camera.EventExposureEndTimestamp.GetValue()
-                    img = image_result.GetNDArray() # get inmage as NumPy array
-                    try: image_result.Release() # make next frame available, can create error during debug
-                    except: self.logger.log(logging.WARNING, "[CAM]: Can not release image!")
-                    self.datacube.add(img)
+        # Get New Image
+        if self.camera is not None:
+            image_result = self.camera.GetNextImage(grabTimeout=1) # timeout in ms, function blocks until timeout
+            if not image_result.IsIncomplete(): # should be complete when image was available
+                # self.frame_time = self.camera.EventExposureEndTimestamp.GetValue()
+                img = image_result.GetNDArray() # get image as NumPy array
+                try: image_result.Release() # make next frame available, can create error during debug
+                except: self.logger.log(logging.WARNING, "[CAM]: Could not release image!")
+                self.datacube.add(img)
 
-            # FPS calculation
-            self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - last_time)) # low pass filter
-            if current_time - last_emit > 0.5:
-                self.fpsReady.emit(self.measured_fps)
-                last_emit =  current_time
-                self.logger.log(logging.DEBUG, "[CAM]: FPS: {}.".format(self.measured_fps))
-            last_time = current_time
+                # FPS calculation
+                self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - self.last_update_time)) # low pass filter
+                if current_time - self.last_datacube_emit > 0.5:
+                    self.fpsReady.emit(self.measured_fps)
+                    self.last_datacube_emit =  current_time
+                    self.logger.log(logging.DEBUG, "[CAM]: FPS: {}.".format(self.measured_fps))
+                self.last_update_time = current_time
 
     def openCamera(self):
         """

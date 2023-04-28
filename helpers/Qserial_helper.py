@@ -829,7 +829,7 @@ if __name__ == '__main__':
         sendTextRequest         = pyqtSignal(str, bool)                                                     # request to transmit text to TX
         startReceiverRequest    = pyqtSignal()
         serialStatusRequest     = pyqtSignal()                                                        # request serial port and baudrate status
-        # test squence of signals
+        # test sequence of signals
         runTestsRequest         = pyqtSignal()                                                        # request execution of tests
         # stop worker
         finishWorkerRequest     = pyqtSignal()                                                        # request worker to finish
@@ -904,7 +904,7 @@ if __name__ == '__main__':
 
         @pyqtSlot(str, int)
         def on_serialStatusReady(self, port, baud):
-            """ Recqived serial status report """
+            """ Received serial status report """
             self.serialPort = port
             self.serialBaud = baud
             try:

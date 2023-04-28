@@ -219,7 +219,6 @@ class mainWindow(QMainWindow):
         self.cameraWorker.cameraFinished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
         self.cameraThread.finished.connect(         self.cameraThread.deleteLater        ) # delete thread at some time
 
-
         # Signals from Camera to Camera-UI
         self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSInReady )
         self.cameraWorker.newCameraListReady.connect(self.cameraUI.on_newCameraListReady  ) #
@@ -250,7 +249,7 @@ class mainWindow(QMainWindow):
         # User selected camera
         self.ui.comboBoxDropDown_Cameras.currentIndexChanged.connect( self.cameraUI.on_ChangeCamera) # connect changing camera
         # User selected binning, entered exposure time, frame rate
-       # self.ui.comboBox_SelectBinning.currentIndexChanged.connect( self.cameraUI.on_ChangeBinning)  # connect changing binning
+        #self.ui.comboBox_SelectBinning.currentIndexChanged.connect( self.cameraUI.on_ChangeBinning)  # connect changing binning
         #self.ui.lineEdit_CameraFrameRate.returnPressed.connect( self.cameraUI.on_FrameRateChanged )
         #self.ui.lineEdit_CameraExposureTime.returnPressed.connect( self.cameraUI.on_ExposureTimeChanged )
        
