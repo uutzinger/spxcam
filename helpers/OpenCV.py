@@ -63,20 +63,24 @@ class OpenCVCapture(QObject):
         self.measured_fps = 0.0
         self.stopped         = True
         self.camera_lock        = Lock()
+        self.last_time_update = time.perf_counter() 
+        self.last_datacube_emit = time.perf_counter()
+
 
     # After Stating of the Thread, this runs continuously
     def update(self):
         """
-        Continuously read Capture
+        Read Capture Device
         """
-        last_time = last_emit = time.perf_counter()
-       
-        while not self.stopped:           
-            current_time = time.perf_counter()
-            if self.camera is not None:
-                with self.camera_lock:
-                    _, _img = self.camera.read()
-                self.frame_time = int(current_time*1000)
+        # We should change code to use grab and retrieve instead of read
+        #
+        
+        current_time = time.perf_counter()
+        
+        if self.camera is not None:
+            if (self.camera.grab()) :
+                _, _img = self.camera.retrieve() # should always have frame as we just checked with grab
+                # self.frame_time = int(current_time*1000)
                 if (len(_img.shape)>=3):
                     img = cv2.cvtColor(_img, cv2.COLOR_BGR2GRAY)
                 else:
@@ -86,15 +90,15 @@ class OpenCVCapture(QObject):
                 else:
                     self.logger.log(logging.WARNING, "[CAM]:no image available!")
 
-            # FPS calculation
-            self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - last_time)) # low pass filter
-            last_time = current_time
-            if current_time - last_emit > 0.5:
-                #self.FPS.emit(self.measured_fps)
-                last_emit =  current_time
-                self.fpsReady.emit(self.measured_fps)
-                #self.fpsReady=self.measured_fps
-                self.logger.log(logging.DEBUG, "[CAM]:FPS:{}.".format(self.measured_fps))
+                # FPS calculation
+                self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - self.last_time_update)) # low pass filter
+                if current_time - self.last_datacube_emit > 0.5:
+                    #self.FPS.emit(self.measured_fps)
+                    self.last_datacube_emit =  current_time
+                    self.fpsReady.emit(self.measured_fps)
+                    #self.fpsReady=self.measured_fps
+                    self.logger.log(logging.DEBUG, "[CAM]:FPS:{}.".format(self.measured_fps))
+                self.last_update_time = current_time
 
     def openCamera(self):
         """

@@ -27,8 +27,8 @@ from enum import Enum
 import numpy as np
 # QT
 from PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QStandardPaths
-from PyQt5.QtWidgets import QLineEdit,QLCDNumber, QSlider, QCheckBox, QLabel, QFileDialog,  QGraphicsScene, QGraphicsPixmapItem
-from PyQt5.QtGui import QImage,QPixmap
+from PyQt5.QtWidgets import QLineEdit, QLCDNumber, QSlider, QCheckBox, QLabel, QFileDialog,  QGraphicsScene, QGraphicsPixmapItem
+from PyQt5.QtGui import QImage, QPixmap
 # Supported Cameras
 import PySpin
 import cv2
@@ -130,7 +130,7 @@ class QCameraUI(QObject):
         self.pixmap = QGraphicsPixmapItem()
         self.scene.addItem(self.pixmap)
         
-        # add other items to the graphcis scence
+        # add other items to the graphics scence
         # e.g. text, shape etc...
 
         from configs import blackfly_configs as bf_configs
@@ -407,18 +407,23 @@ class QCamera(QObject):
             i -= 1
         return arr
                
-    # @pyqtSlot()    
+    @pyqtSlot()    
     def on_startCamera(self):    
             
-       #TODO need to know datacube depth which is the number of selected measurement channels
         depth=10 # TODO This just random number
         self.camera.startAcquisition(depth=depth, flatfield=None)
         # self.camera.datacube.dataCubeReady.connect() # needs to go to processing
         # self.camera.datacube.dataCubeReady.connect() # needs to go to display
         self.logger.log(logging.DEBUG, "QCamera started")
-        self.cameraUpdateThread = QThread() 
-        self.camera.update() # will run forever unless stop issued
-        # This does not stop until camera is stopped
+        
+        # Need to move camera to own thread. This needs to happen in the main program not here.
+        # self.cameraUpdateThread = QThread()
+        
+        # We will need to come up with mechanism to run update and schedule to run it again as soon as it is completed.
+        # Can not schedule at regular intervals as it will only terminate once image is available. 
+        # If we schedule second call before previous is implete we will block the system.
+        # We need to reschedule as soon as run is completed or figure out if we can read camera with timeout.
+        # self.camera.update()
 
     @pyqtSlot()
     def on_stopCamera(self):
