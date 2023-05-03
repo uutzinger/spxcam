@@ -239,6 +239,9 @@ class BlackflyCapture(QObject):
         except: pass
 
     def startAcquisition(self, depth=1, flatfield=None):
+        # Staring Camera
+        self.openCamera() 
+         # create datacube structure 
         self.datacube = QDataCube(width=self.camera.width, height=self.camera.height, depth=depth, flatfield=flatfield)
         self.camera.BeginAcquisition() # Start Acquisition
         # if trigger source is Software: execute, otherwise nothing goes

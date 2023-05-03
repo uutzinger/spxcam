@@ -153,7 +153,6 @@ class OpenCVCapture(QObject):
         # create datacube structure       
         self.datacube = QDataCube(width=self.width, height=self.height, depth=depth, flatfield=flatfield)
         self.stopped = False
-        self.fpsReady.emit(12)
         self.logger.log(logging.INFO, "[OpenCV]: Acquiring images.")
     
     def stopAcquisition(self):

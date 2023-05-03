@@ -375,6 +375,8 @@ class QCamera(QObject):
             _camHeight= int(_cam.Height.GetMax())            
             arr.extend([{"name": _cam.TLDevice.DeviceModelName.GetValue(), "number": camera_num, "fourcc": "FLIR", "width": _camWidth, "height":_camHeight}])
             _cam.DeInit()
+            del _camWidth
+            del _camHeight
             del _cam
         _cam_list.Clear() # clear camera list before releasing system        
         _system.ReleaseInstance()        
@@ -414,6 +416,7 @@ class QCamera(QObject):
         # self.camera.datacube.dataCubeReady.connect() # needs to go to processing
         # self.camera.datacube.dataCubeReady.connect() # needs to go to display
         self.logger.log(logging.DEBUG, "QCamera started")
+        self.cameraUpdateThread = QThread() 
         self.camera.update() # will run forever unless stop issued
         # This does not stop until camera is stopped
 
