@@ -21,7 +21,10 @@ class QProcessWorker(QObject):
       on_processRequest
       
     """
-
+    
+    #We should do the processing here and not in the datacube class
+    ######################################
+    
     @pyqtSlot(list)
     def on_changeBinning(self, binning):
        self

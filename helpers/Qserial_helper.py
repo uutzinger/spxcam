@@ -32,9 +32,8 @@
 #      https://programmer.ink/think/no-event-loop-or-use-of-qtimer-in-non-gui-qt-threads.html
 #      https://stackoverflow.com/questions/47661854/use-qtimer-to-run-functions-in-an-infinte-loop
 #      https://stackoverflow.com/questions/10492480/starting-qtimer-in-a-qthread
-#      https://www.pythonfixing.com/2022/03/fixed-how-to-use-qtimer-inside-qthread.html
+#      LOWQ https://www.pythonfixing.com/2022/03/fixed-how-to-use-qtimer-inside-qthread.html
 #      https://stackoverflow.com/questions/23607294/qtimer-in-worker-thread
-#      https://www.pythonfixing.com/2022/03/fixed-how-to-use-qtimer-inside-qthread.html
 #      https://stackoverflow.com/questions/60649644/how-to-properly-stop-qtimer-from-another-thread
 #
 # Serial

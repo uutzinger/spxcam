@@ -238,11 +238,11 @@ class BlackflyCapture(QObject):
             self.system.ReleaseInstance()  # release system instance
         except: pass
 
-    def startAcquisition(self, depth=1, flatfield=None):
+    def startAcquisition(self, depth=1):
         # Staring Camera
         self.openCamera() 
          # create datacube structure 
-        self.datacube = QDataCube(width=self.camera.width, height=self.camera.height, depth=depth, flatfield=flatfield)
+        self.datacube = QDataCube(width=self.camera.width, height=self.camera.height, depth=depth, flatfield=None)
         self.camera.BeginAcquisition() # Start Acquisition
         # if trigger source is Software: execute, otherwise nothing goes
         self.camera.TriggerSource.SetValue(PySpin.TriggerSource_Software)

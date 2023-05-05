@@ -1,4 +1,4 @@
-############################################################################################
+##########################################################_probeOpenCVCameras##################################
 # QT Camera Helper Class
 ############################################################################################
 # ------------------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ class QCameraUI(QObject):
         changeExposureRequest          # cameraWorker shall change exposure
         changeFrameRateRequest         # cameraWorker shall change frame rate
         changeBinningRequest           # cameraWorker shall change binning
-        startCameraRequest             # cameraWorker shall start camera
+        startCameraRequest(depth,flatfield) # cameraWorker shall start camera
         stopCameraRequest              # cameraWorker shall stop camera
         setDisplayedChannels           # cameraWorker shall set displayed channels
 
@@ -100,10 +100,10 @@ class QCameraUI(QObject):
     
     """
 
-    startCameraRequest     = pyqtSignal()    # start camera image acquisition
-    stopCameraRequest      = pyqtSignal()    # stop camera image acquisition
-    scanCameraRequest      = pyqtSignal()    # scan for blackfly and opencv cameras
-    calibrateCameraRequest = pyqtSignal()    # calibrate camera response
+    startCameraRequest     = pyqtSignal(depth,flatfield) # start camera image acquisition
+    stopCameraRequest      = pyqtSignal()      # stop camera image acquisition
+    scanCameraRequest      = pyqtSignal()      # scan for blackfly and opencv cameras
+    calibrateCameraRequest = pyqtSignal()      # calibrate camera response
     
     changeCameraRequest    = pyqtSignal(int)  # change camera to one at index int
     changeExposureRequest  = pyqtSignal(int)  # change exposure time to microseconds
@@ -126,20 +126,20 @@ class QCameraUI(QObject):
         self.scene = QGraphicsScene(self)
         self.ui.graphicsView.setScene(self.scene)
 
-        # create pixmap item and add it to the scene
+        # create pixel map item and add it to the scene
         self.pixmap = QGraphicsPixmapItem()
         self.scene.addItem(self.pixmap)
         
-        # add other items to the graphics scence
+        # add other items to the graphics scene
         # e.g. text, shape etc...
 
         from configs import blackfly_configs as bf_configs
         from configs import opencv_configs
         # Search for camera signatures as cv_configs
         
+        self.flatfield = None
         self.logger.log(logging.INFO, "[{}]: initialized.".format(int(QThread.currentThreadId())))
    
-
     def _measuredChannels(self):
         """ 
         Scan for selected channels, 
@@ -147,7 +147,7 @@ class QCameraUI(QObject):
         """        
         MeasuredChannels  = np.zeros(NUM_CHANNELS, dtype=np.bool_)
         MeasuredChannels[0] = 1 # always measure background
-        for channel in range(NUM_CHANNELS-1):
+        for channel in range(NUM_CHANNELS-1): # from 1 to 13
             checkBox = self.ui.findChild( QCheckBox, "checkBox_MeasureChannel"+str(channel+1))
             if checkBox.isChecked:
                 MeasuredChannels[channel+1] = True
@@ -184,24 +184,28 @@ class QCameraUI(QObject):
     @pyqtSlot(float)
     def on_FPSOutReady(self, fps):
         """
-        this will update frames per second display
+        This will update frames per second display
         """
         self.ui.lcdNumber_FPSOUT.display("{:5.1f}".format(fps)) 
 
     @pyqtSlot(np.ndarray)
     def on_ImageDataReady(self, image):
         """
-        this will display image in image window
+        This will display image in image window
+        The display handler will need to provide the image
         """
 
         (depth, height, width) = image.shape
         if depth > 1:  
-            _img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # swap B and R color channels
+            _img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # convert opencv BGR to RGB
             _imgQ = QImage(_img.data, width, height, QImage.Format_RGB888) # convert to QImage
         else: 
             _img = image
             _imgQ = QImage(_img.data, width, height, QImage.Format_Grayscale8) # convert to QImage
-        _pixmap = QPixmap.fromImage(_imgQ)
+
+        _pixmap = QPixmap.fromImage(_imgQ) # create pixel map from QImage
+        _pixmap = _pixmap.scaled(self.ui.graphicsView.width(), self.ui.graphicsView.height(), Qt.KeepAspectRatio) # scale to fit graphics view
+
         self.pixmap.SetPixmap(_pixmap)        
 
     @pyqtSlot(list)
@@ -237,12 +241,13 @@ class QCameraUI(QObject):
     def on_Start(self):
         
         # Channel selection:        
-        # Example
-        # 01234567 8 possible channels
+        # Example with 8 possible channels
+        # 01234567 8 channels
         # 01110110 measured channels
+        # x012x34x index in the datacube
         # 00110010 displayed channels
         # 00110010 both channels
-        # x012x34x index in the measured channels
+        # xx12xx4x index for the displayed channels
       
         # channels selected for measurement
         mChannels = self._measuredChannels()
@@ -250,37 +255,45 @@ class QCameraUI(QObject):
         dChannels = self._displayedChannels()
         # both measured and displayed channels
         bChannels = mChannels & dChannels
+        
         # which images from the measured channels need to be displayed?
-        indexCube  = np.array([])
-        indexNames = np.array([])
+        indexImages  = np.array([])
+        indexImageNames     = np.array([])
         j=0
         for i in range(NUM_CHANNELS):
             if bChannels[i]:
-              # indexCube.append(j)
-               indexCube = np.append(indexCube, j)
-               indexNames = np.append(indexNames, i)
-               #indexNames.append(i)
+               indexImages = np.append(indexImages, j)
+               indexImageNames = np.append(indexImageNames, i)
             if mChannels[i]:
                j += 1
+               
         # the names of the channels are:
         channelNames = []
-        for i in range(len(indexNames)):
+        for i in range(len(indexImageNames)):
             checkBoxDisplay  = self.ui.findChild(QCheckBox, "checkBox_DisplayChannel"+str(i))            
             channelNames.append(checkBoxDisplay.text())
 
-        # announce channels display
-        self.setDisplayedChannelsRequest.emit(indexCube, channelNames)
+        # announce channels to display
+        # provides the index in the data cube we want to display
+        # also provides corresponding name of the channel
+        # This will signal to the display what data to obtain from the data cube
+        self.setDisplayedChannelsRequest.emit(indexImages, channelNames)
 
         # what processing
         # do we want bg-subtraction, flat field correction, 
         # binning, temporal filtering, save to file or 
         # save to ram
+        # if self.ui.checkBox_FlatField.isChecked():
+        #     flatfield = self.flatfield
+        # else:
+        #     flatfield = None
         
         # what to analyze
         # do we want Analysis, Color, Physio, Spectrum?
         
-        # emit signal to camera handler to start acquisition       
-        self.startCameraRequest.emit()
+        # emit signal to camera handler to start acquisition
+        depth=mChannels.sum()
+        self.startCameraRequest.emit(depth)
 
     @pyqtSlot()
     def on_Stop(self):
@@ -297,6 +310,8 @@ class QCameraUI(QObject):
     @pyqtSlot(int)
     def on_ChangeCamera(self, indx):
         self.changeCameraRequest.emit(indx)
+        UPDATE FLAT FIELD
+        self.flatfield = None
         
     @pyqtSlot(int)
     def on_ExposureTimeChanged(self, exposure):
@@ -355,6 +370,8 @@ class QCamera(QObject):
         self.cameraDesc = [{"name": "None", "number": -1, "fourcc": "NULL", "width": 0, "height": 0}] + camBlackFly + camCV2 
         self.newCameraListReady.emit(self.cameraDesc)
         
+        self.CAMERA_INTERVAL = 1
+        
         self.logger.log(logging.DEBUG, "QCamera initialized")
                
     # Functions internal
@@ -362,7 +379,7 @@ class QCamera(QObject):
 
     def _probeBlackFlyCameras(self):
         '''
-        Scans cameras and returns fourcc, width and height
+        Scans cameras and returns lsit of cameras with fourcc, width and height
         '''
         arr=[]
         _system = PySpin.System.GetInstance() # open library
@@ -384,7 +401,7 @@ class QCamera(QObject):
         
     def _probeOpenCVCameras(self,numcams: int = 10):
         '''
-        Scans cameras and returns default fourcc, width and height
+        Scans cameras and returns list of cameras with fourcc, width and height
         '''              
         arr = []      
         camera_num=0
@@ -397,10 +414,8 @@ class QCamera(QObject):
                     fourcc = "".join([chr((int(tmp) >> 8 * i) & 0xFF) for i in range(4)])
                     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
                     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                    cap.release()
                     arr.extend([{"name": "CV - " + str(camera_num), "number": camera_num, "fourcc": fourcc, "width": width, "height": height}])
-                else:               
-                    cap.release()
+                cap.release()
             else:
                 break
             camera_num += 1
@@ -408,26 +423,30 @@ class QCamera(QObject):
         return arr
                
     @pyqtSlot()    
-    def on_startCamera(self):    
+    def on_startCamera(self, depth=1):
             
-        depth=10 # TODO This just random number
-        self.camera.startAcquisition(depth=depth, flatfield=None)
+        self.cameraTimer = QTimer()
+        # self.cameraTimer.setInterval(self.CAMERA_INTERVAL) 
+        # self.cameraTimerTimeout = self.RECEIVER_TIMEOUT
+        self.cameraTimer.timeout.connect(self.camera.update)
+
+        # https://matthewbilyeu.com/blog/faking-better-than-millisecond-resolution-with-a-qtimer/
+
+        self.camera.startAcquisition(depth=depth)
         # self.camera.datacube.dataCubeReady.connect() # needs to go to processing
-        # self.camera.datacube.dataCubeReady.connect() # needs to go to display
+        # then if processing is done it needs to create image and send it to display
+
+        self.cameraTimer.start(self.CAMERA_INTERVAL) # restart timer every x milli seconds
         self.logger.log(logging.DEBUG, "QCamera started")
         
         # Need to move camera to own thread. This needs to happen in the main program not here.
         # self.cameraUpdateThread = QThread()
         
-        # We will need to come up with mechanism to run update and schedule to run it again as soon as it is completed.
-        # Can not schedule at regular intervals as it will only terminate once image is available. 
-        # If we schedule second call before previous is implete we will block the system.
-        # We need to reschedule as soon as run is completed or figure out if we can read camera with timeout.
-        # self.camera.update()
-
     @pyqtSlot()
     def on_stopCamera(self):
+        self.cameraTimer.stop()
         self.camera.stopAcquisition()
+        self.cameraFinished.emit()
         self.logger.log(logging.DEBUG, "QCamera stopped")
 
     @pyqtSlot()

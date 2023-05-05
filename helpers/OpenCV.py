@@ -6,8 +6,8 @@
 import cv2
 from threading import Thread,Lock
 # QT
-from   PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QSignalMapper
-from   PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
+from PyQt5.QtCore import QObject, QTimer, QThread, pyqtSignal, pyqtSlot, QSignalMapper
+from PyQt5.QtWidgets import QLineEdit, QSlider, QCheckBox, QLabel
 from helpers.Processing_helper import QDataCube
 #QT System
 import logging, time,sys
@@ -151,11 +151,11 @@ class OpenCVCapture(QObject):
         try: self.camera.release()
         except: pass
 
-    def startAcquisition(self, depth=1, flatfield=None):
+    def startAcquisition(self, depth=1):
         # Staring Camera
         self.openCamera()       
         # create datacube structure       
-        self.datacube = QDataCube(width=self.width, height=self.height, depth=depth, flatfield=flatfield)
+        self.datacube = QDataCube(width=self.width, height=self.height, depth=depth, flatfield=None)
         self.stopped = False
         self.logger.log(logging.INFO, "[OpenCV]: Acquiring images.")
     
