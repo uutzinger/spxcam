@@ -87,19 +87,19 @@ class OpenCVCapture(QObject):
                     img = _img
                 if (img is not None):
                     self.datacube.add(img)
-                else:
+                    self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - self.last_time_update)) # low pass filter
+                    self.last_time_update = current_time
+            else:
                     self.logger.log(logging.WARNING, "[CAM]:no image available!")
 
-                # FPS calculation
-                self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - self.last_time_update)) # low pass filter
-                if current_time - self.last_datacube_emit > 0.5:
-                    #self.FPS.emit(self.measured_fps)
-                    self.last_datacube_emit =  current_time
-                    self.fpsReady.emit(self.measured_fps)
-                    #self.fpsReady=self.measured_fps
-                    self.logger.log(logging.DEBUG, "[CAM]:FPS:{}.".format(self.measured_fps))
-                self.last_update_time = current_time
-
+            # FPS calculation
+            if current_time - self.last_datacube_emit > 0.5:
+                #self.FPS.emit(self.measured_fps)
+                self.last_datacube_emit =  current_time
+                self.fpsReady.emit(self.measured_fps)
+                #self.fpsReady=self.measured_fps
+                self.logger.log(logging.DEBUG, "[CAM]:FPS:{}.".format(self.measured_fps))
+    
     def openCamera(self):
         """
         Open up the camera so we can begin capturing frames

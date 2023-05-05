@@ -135,7 +135,7 @@ class QCameraUI(QObject):
 
         from configs import blackfly_configs as bf_configs
         from configs import opencv_configs
-        # Search for camera signatures as cv_configs
+            # Search for camera signatures as cv_configs
         
         self.flatfield = None
         self.logger.log(logging.INFO, "[{}]: initialized.".format(int(QThread.currentThreadId())))
