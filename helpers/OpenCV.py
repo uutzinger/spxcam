@@ -18,6 +18,7 @@ class OpenCVCapture(QObject):
 
     imageDataReady    = pyqtSignal(float, np.ndarray)                                     # image received on serial port
     fpsReady          = pyqtSignal(float)
+    stopAquisition     = pyqtSignal(bool)
     
     # Initialize the Camera Thread
     # Opens Capture Device and Sets Capture Properties
@@ -61,9 +62,9 @@ class OpenCVCapture(QObject):
         # Init vars
         self.frame_time   = 0.0
         self.measured_fps = 0.0
-        self.stopped         = True
+        self.stopped            = True
         self.camera_lock        = Lock()
-        self.last_time_update = time.perf_counter() 
+        self.last_time_update   = time.perf_counter() 
         self.last_datacube_emit = time.perf_counter()
         self.data_stack=[]
 
@@ -73,9 +74,7 @@ class OpenCVCapture(QObject):
         """
         Read Capture Device
         """
-        # We should change code to use grab and retrieve instead of read
-        #
-        
+       
         current_time = time.perf_counter()
       
         if self.camera is not None:
@@ -95,7 +94,7 @@ class OpenCVCapture(QObject):
                     self.last_time_update = current_time
                     self.measured_fps = (0.9 * self.measured_fps) + (0.1/(current_time - self.last_time_update)) # low pass filter
                     self.last_time_update = current_time
-            else:
+                else:
                     self.logger.log(logging.WARNING, "[CAM]:no image available!")
 
                 # FPS calculation
@@ -166,6 +165,9 @@ class OpenCVCapture(QObject):
         self.datacube = QDataCube(width=self.width, height=self.height, depth=depth, flatfield=None)
         self.stopped = False
         self.logger.log(logging.INFO, "[OpenCV]: Acquiring images.")
+        while not self.stopped:
+            self.update()
+            # check here if we need cehck for stop signal
     
     def stopAcquisition(self):
         self.stopped = True

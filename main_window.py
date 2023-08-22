@@ -202,14 +202,45 @@ class mainWindow(QMainWindow):
         #----------------------------------------------------------------------------------------------------------------------
         # Camera
         #----------------------------------------------------------------------------------------------------------------------
+        # self.zmqWorker = zmqWorker(logger=self.logger)
+        # self.zmqWorkerThread = QThread()
+        # self.zmqWorker.moveToThread(self.zmqWorkerThread)
+        # self.zmqWorker.dataReady.connect(self.objectRenderingWidget.update_system)
+        # self.zmqWorker.BLEstatus.connect(self.objectRenderingWidget.update_BLEstatus)
+        # self.zmqWorker.finished.connect(self.worker_finished)
+        # self.zmqWorkerThread.started.connect(self.zmqWorker.start)
+        # self.zmqWorkerThread.finished.connect(self.worker_thread_finished)
+        # self.zmqWorker.set_zmqPort(args.zmqport)
+        # self.zmqWorkerThread.start()
+
+        # self.cameraWorker = QCamera()
+        # self.cameraThread = QThread()
+        # self.cameraWorker.moveToThread(self.cameraThread)
+        #
+        # Connect Signals
+        #
+        # self.cameraThread.started.connect(self.cameraWorker.on_startCamera)
+        # self.cameraThread.finished.connect(self.worker_thread_finished)
+        
+        
+        def worker_thread_finished(self):
+           self.cameraThread.deleteLater()
+           self.cameraWorker.deleteLater()
+        
+        # Set worker parameters
+
+        # when user hits Start button
+        #   self.cameraThread.start()
+
+
         from configs import blackfly_configs as configs
 
         # Camera capture thread
         self.cameraThread = QThread()                                                      # create QThread object
-        self.cameraThread.start()                                                               # start thread which will start worker
+        self.cameraThread.start()                                                          # start thread which will start worker
 
         # Create user interface hook for camera
-        self.cameraUI     = QCameraUI(ui=self.ui)                                          # create serial user interface object
+        self.cameraUI     = QCameraUI(ui=self.ui)                                          # create user interface to camera buttons
 
         # Create camera worker
         self.cameraWorker = QCamera()
@@ -217,7 +248,7 @@ class mainWindow(QMainWindow):
         # Connect worker / thread
         self.cameraWorker.cameraFinished.connect(         self.cameraThread.quit               ) # if worker emits finished quite worker thread
         self.cameraWorker.cameraFinished.connect(         self.cameraWorker.deleteLater        ) # delete worker at some time
-        self.cameraThread.finished.connect(         self.cameraThread.deleteLater        ) # delete thread at some time
+        self.cameraThread.finished.connect(               self.cameraThread.deleteLater        ) # delete thread at some time
 
         # Signals from Camera to Camera-UI
         self.cameraWorker.fpsReady.connect(         self.cameraUI.on_FPSInReady )

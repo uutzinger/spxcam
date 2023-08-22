@@ -425,18 +425,24 @@ class QCamera(QObject):
     @pyqtSlot()    
     def on_startCamera(self, depth=1):
             
-        self.cameraTimer = QTimer()
+        # self.cameraTimer = QTimer()
         # self.cameraTimer.setInterval(self.CAMERA_INTERVAL) 
         # self.cameraTimerTimeout = self.RECEIVER_TIMEOUT
-        self.cameraTimer.timeout.connect(self.camera.update)
+        # self.cameraTimer.timeout.connect(self.camera.update)
 
         # https://matthewbilyeu.com/blog/faking-better-than-millisecond-resolution-with-a-qtimer/
 
         self.camera.startAcquisition(depth=depth)
+        # opens camera
+        # create data cube object
+        # for ever loop
+        
+        
+        
         # self.camera.datacube.dataCubeReady.connect() # needs to go to processing
         # then if processing is done it needs to create image and send it to display
 
-        self.cameraTimer.start(self.CAMERA_INTERVAL) # restart timer every x milli seconds
+        # self.cameraTimer.start(self.CAMERA_INTERVAL) # restart timer every x milli seconds
         self.logger.log(logging.DEBUG, "QCamera started")
         
         # Need to move camera to own thread. This needs to happen in the main program not here.

@@ -383,7 +383,7 @@ class QSerial(QObject):
         newBaudListReady          compled a baud scan
         serialStatusReady         report port and baudrate
 
-    Woker Slots
+    Worker Slots
         on_startReceiverRequest()        start timer that reads input port
         on_stopReceiverRequest()         stop  timer that reads input port
         on_stopWorkerRequest()           stop  timer and close serial port
